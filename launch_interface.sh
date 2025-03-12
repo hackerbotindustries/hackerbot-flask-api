@@ -5,14 +5,13 @@ BASE_DIR="$(pwd)"
 
 # Log directory setup
 timestamp="hackerbot_$(date '+%Y%m%d%H%M')"
-logdir="$HOME/hackerbot_web_logs"
+logdir="$HOME/hackerbot_logs"
 mkdir -p "$logdir"
 
 # Keep only the latest 5 logs
 ls -1dt "$logdir"/* | tail -n +6 | xargs rm -rf 2>/dev/null
 
 logfile_backend="$logdir/$timestamp_flask.txt"
-logfile_frontend="$logdir/$timestamp_react.txt"
 
 # Port configuration
 FLASK_PORT=5000
