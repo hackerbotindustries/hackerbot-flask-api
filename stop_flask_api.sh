@@ -6,9 +6,9 @@ FLASK_PORT=5000
 # TODO: Change this to your actual serial port
 SERIAL_PORT="/dev/ttyACM0"
 
-echo "#############################################"
+echo "---------------------------------------------"
 echo "STOPPING HACKERBOT FLASK API"
-echo "#############################################"
+echo "---------------------------------------------"
 
 # Find and kill Flask process
 FLASK_PID=$(lsof -ti :$FLASK_PORT)
@@ -25,9 +25,9 @@ else
     echo "Flask backend not running."
 fi
 
-echo "#############################################"
+echo "---------------------------------------------"
 echo "CHECKING SERIAL PORT $SERIAL_PORT"
-echo "#############################################"
+echo "---------------------------------------------"
 
 # Check if the serial port is occupied
 if lsof "$SERIAL_PORT" &>/dev/null; then
@@ -39,6 +39,6 @@ else
     echo "Serial port $SERIAL_PORT is not occupied."
 fi
 
-echo "#############################################"
+echo "---------------------------------------------"
 echo "HACKERBOT FLASK API STOPPED"
-echo "#############################################"
+echo "---------------------------------------------"
