@@ -5,7 +5,7 @@ bp = Blueprint('action', __name__)
 @bp.route('/api/ping/', methods=['GET'])
 def ping_command():
     robot = current_app.config['ROBOT']
-    result = robot.ping()
+    result = robot.get_ping()
     if result:
         return jsonify({'response': result})
     return jsonify({'error': robot.get_error()})
@@ -13,7 +13,7 @@ def ping_command():
 @bp.route('/api/version/', methods=['GET'])
 def version_command():
     robot = current_app.config['ROBOT']
-    result = robot.version()
+    result = robot.get_version()
     if result:
         return jsonify({'response': result})
     return jsonify({'error': robot.get_error()})
@@ -21,7 +21,7 @@ def version_command():
 @bp.route('/api/stop/', methods=['GET'])
 def stop_command():
     robot = current_app.config['ROBOT']
-    result = robot.stop()
+    result = robot.stop_driver()
     if result:
         return jsonify({'response': 'STOP Command Successful'})
     return jsonify({'error': robot.get_error()})
