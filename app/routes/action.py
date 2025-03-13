@@ -1,5 +1,4 @@
 from flask import Blueprint, jsonify, current_app
-import json
 
 bp = Blueprint('action', __name__)
 
