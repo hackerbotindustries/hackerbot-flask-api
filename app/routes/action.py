@@ -13,7 +13,7 @@ def ping_command():
 @bp.route('/api/version/', methods=['GET'])
 def version_command():
     robot = current_app.config['ROBOT']
-    result = robot.get_version()
+    result = robot.get_versions()
     if result:
         return jsonify({'response': result})
     return jsonify({'error': robot.get_error()})
