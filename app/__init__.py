@@ -3,16 +3,6 @@ from flask_cors import CORS
 from app.routes import register_routes
 import hackerbot_helper as hhp
 
-
-# def connect_robot():
-#     if not hasattr(g, 'robot'):  # Ensure the robot is connected only once
-#         g.robot = hhp.ProgrammedController()
-#         g.robot.init_driver()
-#         g.map_list = g.robot.get_map_list()
-#         g.map_data = g.robot.get_map(g.map_list[0])
-#         g.curr_map_id = g.map_list[0] if len(g.map_list) > 0 else None
-
-
 def create_app():
     app = Flask(__name__)
 
@@ -24,6 +14,7 @@ def create_app():
     # Create a single controller instance
     robot = hhp.ProgrammedController()
     robot.init_driver()
+    robot.activate_machine_mode()
     
     # Store everything in app.config
     app.config['ROBOT'] = robot
