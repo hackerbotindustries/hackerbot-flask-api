@@ -3,7 +3,11 @@ set -o pipefail
 
 BASE_DIR="$(pwd)"
 
+cd $HOME/hackerbot/hackerbot-flask-api/
+
+# export FLASK_APP=$HOME/hackerbot/hackerbot-flask-api/app/run.py
 export FLASK_APP=app/run.py
+
 
 # Log directory setup
 timestamp_flask="hackerbot_flask_$(date '+%Y%m%d%H%M')"
@@ -28,7 +32,7 @@ function echo_failure {
     echo ""
     echo "---------------------------------------------"
     echo "FAILURE! Hackerbot flask api failed to launch."
-    echo "Check logs in: $logdir"
+    echo "Check logs in: $logfile_backend"
     echo "---------------------------------------------"
     exit 1
 }
