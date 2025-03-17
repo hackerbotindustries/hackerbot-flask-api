@@ -18,4 +18,4 @@ def get_compressed_map_data(selected_map_id):
         map_data = robot.get_map(selected_map_id)
         print("Fetched new map data for", selected_map_id)
         
-    return jsonify({"map_id": curr_map_id, "map_data": map_data})
+    return jsonify({"map_id": selected_map_id, "map_data": map_data})
