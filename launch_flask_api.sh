@@ -3,6 +3,8 @@ set -o pipefail
 
 BASE_DIR="$(pwd)"
 
+export FLASK_APP=app/run.py
+
 # Log directory setup
 timestamp_flask="hackerbot_flask_$(date '+%Y%m%d%H%M')"
 logdir="$HOME/hackerbot/logs"

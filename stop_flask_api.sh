@@ -25,19 +25,6 @@ else
     echo "Flask backend not running."
 fi
 
-# Find and kill Flask process by command name
-# FLASK_CMD_PIDS=$(ps aux | grep '[f]lask' | awk '{print $2}')
-# if [ -n "$FLASK_CMD_PIDS" ]; then
-#     echo "Stopping Flask processes by command name..."
-#     for PID in $FLASK_CMD_PIDS; do
-#         echo "Killing Flask process (PID: $PID)..."
-#         kill -9 "$PID"
-#     done
-#     echo "Flask processes stopped."
-# else
-#     echo "No additional Flask processes found."
-# fi
-
 echo "---------------------------------------------"
 echo "CHECKING SERIAL PORT $SERIAL_PORT"
 echo "---------------------------------------------"
