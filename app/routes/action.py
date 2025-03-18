@@ -49,7 +49,7 @@ def init_command():
 @bp.route('/api/goto/<param>', methods=['POST'])
 def goto_command(param):
     try:
-        values = [int(x) for x in param.split(",")]
+        values = [float(x) for x in param.split(",")]
         robot = current_app.config['ROBOT']
         x_coord = values[0]
         y_coord = values[1]
