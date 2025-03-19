@@ -86,3 +86,49 @@ def quickmap_command():
     if result:
         return jsonify({'response': 'QUICKMAP Command Successful'})
     return jsonify({'error': robot.get_error()})
+
+####### HEAD COMMANDS
+
+@bp.route('/api/h_idle/<param>', methods=['POST'])
+def h_idle_command(param):
+    robot = current_app.config['ROBOT']
+    result = False
+    if param == '1':
+        result = robot.enable_idle_mode()
+    elif param == '0':
+        result = robot.disable_idle_mode()
+    if result:
+        return jsonify({'response': 'H_IDLE Command Successful'})
+    return jsonify({'error': robot.get_error()})
+
+@bp.route('/api/h_look/<param>', methods=['POST'])
+def h_look_command(param):
+    try:
+        values = [float(x) for x in param.split(",")]
+        robot = current_app.config['ROBOT']
+        x_coord = values[0]
+        y_coord = values[1]
+        angle = values[2]
+        speed = values[3]
+
+        result = robot.move_head(x_coord, y_coord, angle, speed)
+        if result:
+            return jsonify({'response': 'H_LOOK Command Successful'})
+        return jsonify({'error': robot.get_error()})
+    except Exception as e:
+        return jsonify({'error': str(e)})
+    
+@bp.route('/api/h_gaze/<param>', methods=['POST'])
+def h_gaze_command(param):
+    try:
+        values = [float(x) for x in param.split(",")]
+        robot = current_app.config['ROBOT']
+        x_coord = values[0]
+        y_coord = values[1]
+
+        result = robot.set_gaze(x_coord, y_coord)
+        if result:
+            return jsonify({'response': 'H_GAZE Command Successful'})
+        return jsonify({'error': robot.get_error()})
+    except Exception as e:
+        return jsonify({'error': str(e)})

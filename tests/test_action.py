@@ -120,7 +120,7 @@ class TestActionAPI(unittest.TestCase):
         # Test /api/goto/<param> route when robot.goto_pos() is successful
         self.mock_robot.goto_pos.return_value = True
         
-        response = self.client.post('/api/goto/1,2,90,10')
+        response = self.client.post('/api/goto/1.3,2.3,90,10')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json, {'response': 'GOTO Command Successful'})
 
@@ -129,7 +129,7 @@ class TestActionAPI(unittest.TestCase):
         self.mock_robot.goto_pos.return_value = False
         self.mock_robot.get_error.return_value = "Goto error"
         
-        response = self.client.post('/api/goto/1,2,90,10')
+        response = self.client.post('/api/goto/1.3,2.3,90,1')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json, {'error': "Goto error"})
 
@@ -183,6 +183,64 @@ class TestActionAPI(unittest.TestCase):
         response = self.client.get('/api/quickmap/')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json, {'error': "Quickmap error"})
+
+#### TEST HEAD COMMANDS
+
+    def test_h_idle_command_enable(self):
+        self.mock_robot.enable_idle_mode.return_value = True
+        response = self.client.post('/api/h_idle/1')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json, {'response': 'H_IDLE Command Successful'})
+
+    def test_h_idle_command_disable(self):
+        self.mock_robot.disable_idle_mode.return_value = True
+        response = self.client.post('/api/h_idle/0')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json, {'response': 'H_IDLE Command Successful'})
+
+    def test_h_idle_command_failure(self):
+        self.mock_robot.disable_idle_mode.return_value = False
+        self.mock_robot.get_error.return_value = 'Some error'
+        response = self.client.post('/api/h_idle/0')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json, {'error': 'Some error'})
+
+    def test_h_look_command_success(self):
+        self.mock_robot.move_head.return_value = True
+        response = self.client.post('/api/h_look/1.0,2.0,30.0,0.5')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json, {'response': 'H_LOOK Command Successful'})
+
+    def test_h_look_command_failure(self):
+        self.mock_robot.move_head.return_value = False
+        self.mock_robot.get_error.return_value = 'Movement failed'
+        response = self.client.post('/api/h_look/1.0,2.0,30.0,0.5')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json, {'error': 'Movement failed'})
+
+    def test_h_look_command_invalid_input(self):
+        response = self.client.post('/api/h_look/invalid_data')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('could not convert string to float', response.json['error'])
+
+    def test_h_gaze_command_success(self):
+        self.mock_robot.set_gaze.return_value = True
+        response = self.client.post('/api/h_gaze/3.0,4.0')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json, {'response': 'H_GAZE Command Successful'})
+
+    def test_h_gaze_command_failure(self):
+        self.mock_robot.set_gaze.return_value = False
+        self.mock_robot.get_error.return_value = 'Gaze failed'
+        response = self.client.post('/api/h_gaze/3.0,4.0')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json, {'error': 'Gaze failed'})
+
+    def test_h_gaze_command_invalid_input(self):
+        response = self.client.post('/api/h_gaze/invalid_data')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('could not convert string to float', response.json['error'])
+    
 
 if __name__ == '__main__':
     unittest.main()
