@@ -13,6 +13,9 @@ def get_map_list():
 
 @bp.route('/api/getmap/<int:selected_map_id>', methods=['GET'])
 def get_compressed_map_data(selected_map_id):
+    if selected_map_id not in current_app.config['MAP_LIST']:
+        return jsonify({"error": "Invalid map ID: " + str(selected_map_id)}), 404
+        
     if selected_map_id not in map_data_db:
         map_data = current_app.config['MAP_DATA'][selected_map_id]
         if map_data is None:

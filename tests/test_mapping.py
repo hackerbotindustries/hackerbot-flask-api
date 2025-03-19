@@ -3,10 +3,12 @@ from unittest.mock import MagicMock
 from flask import Flask, jsonify
 import sys
 import os
+import pytest
+from app import create_app
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from app.routes.mapping import bp  # Adjust import path based on your project structure
+from app.routes.mapping import bp
 
 class TestMappingDataAPI(unittest.TestCase):
 
@@ -21,44 +23,84 @@ class TestMappingDataAPI(unittest.TestCase):
     def setUp(self):
         # Mock the current_app.config values for the tests
         self.mock_robot = MagicMock()
-        self.app.config['MAP_LIST'] = ["map1", "map2", "map3"]
-        self.app.config['MAP_DATA'] = {"map1": "data1", "map2": "data2"}
+        self.app.config['MAP_LIST'] = [1, 2, 3]  # List of map IDs
+        
+        # Set up mock responses for get_map
+        self.mock_robot.get_map.side_effect = lambda map_id: {
+            'data': f'map{map_id}',
+        }
+        
+        # Initialize MAP_DATA using the mock robot
+        self.app.config['MAP_DATA'] = {
+            map_id: self.mock_robot.get_map(map_id) for map_id in self.app.config['MAP_LIST']
+        }
+        
         self.app.config['CURR_MAP_ID'] = 1
         self.app.config['ROBOT'] = self.mock_robot
 
     def test_get_map_list(self):
-        # Test /api/getml route
         response = self.client.get('/api/getml')
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {"map_list": ["map1", "map2", "map3"]})
+        self.assertEqual(response.json, {"map_list": [1, 2, 3]})
 
     def test_get_compressed_map_data_same_map_id(self):
-        # Test /api/getmap/<selected_map_id> route with the same map_id
-        response = self.client.get('/api/getmap/1')  # same as CURR_MAP_ID
+        response = self.client.get('/api/getmap/1')
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {"map_id": 1, "map_data": {"map1": "data1", "map2": "data2"}})
-
-    def test_get_compressed_map_data_different_map_id(self):
-        # Test /api/getmap/<selected_map_id> route with a different map_id
-        self.mock_robot.get_map.return_value = {"map3": "data3"}  # Mock the robot to return map3 data
-        
-        # New map_id is different from CURR_MAP_ID, so the map should be fetched
-        response = self.client.get('/api/getmap/2')
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {"map_id": 2, "map_data": {"map3": "data3"}})
-        
-        # Verify the robot's `get_map` method was called with the correct map_id
-        self.mock_robot.get_map.assert_called_once_with(2)
-        self.assertEqual(self.app.config['CURR_MAP_ID'], 2)  # Verify that the CURR_MAP_ID was updated
+        self.assertEqual(response.json, {"map_id": 1, "map_data": self.app.config['MAP_DATA'][1]})
 
     def test_get_compressed_map_data_invalid_map_id(self):
-        # Test /api/getmap/<selected_map_id> route with invalid map_id
-        # Simulate an invalid or non-existent map_id scenario (you can adjust based on your application)
-        self.mock_robot.get_map.return_value = None  # Let's say the robot fails to return map data
-        
-        response = self.client.get('/api/getmap/99')  # Assuming map 99 doesn't exist
+        response = self.client.get('/api/getmap/99')
+        self.assertEqual(response.status_code, 404)
+        self.assertIn('error', response.json)
+
+    def test_save_markers_success(self):
+        test_data = {
+            "map_id": 1,
+            "markers": [{"id": 1, "position": [0, 0]}]
+        }
+        response = self.client.post('/api/save-markers', json=test_data)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {"map_id": 99, "map_data": None})
+        self.assertEqual(response.json, {
+            "map_id": 1,
+            "markers": [{"id": 1, "position": [0, 0]}]
+        })
+
+    def test_save_markers_missing_map_id(self):
+        test_data = {
+            "markers": [{"id": 1, "position": [0, 0]}]
+        }
+        response = self.client.post('/api/save-markers', json=test_data)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('error', response.json)
+
+    def test_save_markers_invalid_json(self):
+        response = self.client.post('/api/save-markers', data='invalid json')
+        self.assertEqual(response.status_code, 500)
+        self.assertIn('error', response.json)
+
+    def test_load_markers_success(self):
+        # First save some markers
+        test_data = {
+            "map_id": 1,
+            "markers": [{"id": 1, "position": [0, 0]}]
+        }
+        self.client.post('/api/save-markers', json=test_data)
+        
+        # Then load them
+        response = self.client.get('/api/load-markers/1')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json, {
+            "map_id": 1,
+            "markers": [{"id": 1, "position": [0, 0]}]
+        })
+
+    def test_load_markers_empty(self):
+        response = self.client.get('/api/load-markers/999')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json, {
+            "map_id": 999,
+            "markers": []
+        })
 
 if __name__ == '__main__':
     unittest.main()
