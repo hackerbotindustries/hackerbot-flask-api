@@ -19,7 +19,9 @@ def create_app():
     # Store everything in app.config
     app.config['ROBOT'] = robot
     app.config['MAP_LIST'] = robot.get_map_list()
-    app.config['MAP_DATA'] = robot.get_map(app.config['MAP_LIST'][0]) if app.config['MAP_LIST'] else None
+    # app.config['MAP_DATA'] = robot.get_map(app.config['MAP_LIST'][0]) if app.config['MAP_LIST'] else None
+    app.config['MAP_DATA'] = {map_id: robot.get_map(map_id) for map_id in app.config['MAP_LIST']}
+
     app.config['CURR_MAP_ID'] = app.config['MAP_LIST'][0] if app.config['MAP_LIST'] else None
 
 
