@@ -13,8 +13,11 @@ def get_map_list():
 
 @bp.route('/api/getmap/<int:selected_map_id>', methods=['GET'])
 def get_compressed_map_data(selected_map_id):
+    if current_app.config['MAP_LIST'] is None:
+        return jsonify({"error": "No map list found"}), 200
+
     if selected_map_id not in current_app.config['MAP_LIST']:
-        return jsonify({"error": "Invalid map ID: " + str(selected_map_id)}), 404
+        return jsonify({"error": "Invalid map ID: " + str(selected_map_id)}), 200
         
     if selected_map_id not in map_data_db:
         map_data = current_app.config['MAP_DATA'][selected_map_id]
@@ -22,7 +25,7 @@ def get_compressed_map_data(selected_map_id):
             robot = current_app.config['ROBOT']
             map_data = robot.get_map(selected_map_id)
             if map_data is None:
-                return jsonify({"error": "Map data not found: " + str(selected_map_id)}), 404
+                return jsonify({"error": "Map data not found: " + str(selected_map_id)}), 200
         map_data_db[selected_map_id] = map_data
         
     return jsonify({
@@ -38,7 +41,7 @@ def save_markers():
         markers = data.get("markers", [])
         
         if map_id is None:
-            return jsonify({"error": "map_id is required"}), 400
+            return jsonify({"error": "map_id is required"}), 200
             
         markers_db[map_id] = markers  # Store markers for specific map_id
 
@@ -47,7 +50,7 @@ def save_markers():
             "markers": markers
         }), 200
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": str(e)}), 200
 
 @bp.route('/api/load-markers/<int:map_id>', methods=['GET'])
 def load_markers(map_id):
@@ -63,4 +66,4 @@ def load_markers(map_id):
             "markers": markers_db[map_id]
         }), 200
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": str(e)}), 200
