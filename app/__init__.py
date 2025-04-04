@@ -23,8 +23,6 @@ import hackerbot_helper as hhp
 def create_app():
     app = Flask(__name__)
 
-    # app.before_request(connect_robot)
-
     # Load configuration
     app.config.from_object('app.config.Config')
 
