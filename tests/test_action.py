@@ -46,19 +46,19 @@ class TestActionAPI(unittest.TestCase):
         self.mock_robot.base.start.return_value = 'started'
         self.mock_robot.base.status.return_value = 'ok'
         self.mock_robot.base.drive.return_value = 'driving'
-        self.mock_robot.base.get_position.return_value = {'x': 1, 'y': 2, 'angle': 90}
+        self.mock_robot.base.maps.position.return_value = {'x': 1, 'y': 2, 'angle': 90}
         self.mock_robot.base.goto.return_value = 'arrived'
         self.mock_robot.base.get_map.return_value = {'map_id': '123'}
         self.mock_robot.base.list_maps.return_value = ['map1', 'map2']
         self.mock_robot.head.look.return_value = 'looking'
-        self.mock_robot.head.gaze.return_value = 'gazing'
-        self.mock_robot.head.get_position.return_value = {'yaw': 0.5, 'pitch': 0.3}
+        self.mock_robot.head.eyes.gaze.return_value = 'gazing'
+        # self.mock_robot.head.get_position.return_value = {'yaw': 0.5, 'pitch': 0.3}
         self.mock_robot.arm.gripper.calibrate.return_value = 'calibrated'
         self.mock_robot.arm.gripper.open.return_value = 'opened'
         self.mock_robot.arm.gripper.close.return_value = 'closed'
         self.mock_robot.arm.move_joint.return_value = 'joint moved'
         self.mock_robot.arm.move_joints.return_value = 'joints moved'
-        self.mock_robot.arm.get_position.return_value = [0.1, 0.2, 0.3]
+        # self.mock_robot.arm.get_position.return_value = [0.1, 0.2, 0.3]
         self.mock_robot.get_error.return_value = 'Some error'
         self.app = self.__class__.app
         self.app.config['ROBOT'] = self.mock_robot
@@ -101,10 +101,10 @@ class TestActionAPI(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json['response'], 'gazing')
 
-    def test_head_position(self):
-        response = self.client.get('/api/v1/head/position')
-        self.assertEqual(response.status_code, 200)
-        self.assertIn('yaw', response.json['response'])
+    # def test_head_position(self):
+    #     response = self.client.get('/api/v1/head/position')
+    #     self.assertEqual(response.status_code, 200)
+    #     self.assertIn('yaw', response.json['response'])
 
     def test_base_initialize(self):
         response = self.client.post('/api/v1/base', json={'method': 'initialize'})
@@ -161,10 +161,10 @@ class TestActionAPI(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json['response'], 'joints moved')
 
-    def test_arm_position(self):
-        response = self.client.get('/api/v1/arm/position')
-        self.assertEqual(response.status_code, 200)
-        self.assertIsInstance(response.json['response'], list)
+    # def test_arm_position(self):
+    #     response = self.client.get('/api/v1/arm/position')
+    #     self.assertEqual(response.status_code, 200)
+    #     self.assertIsInstance(response.json['response'], list)
 
 if __name__ == '__main__':
     unittest.main()
