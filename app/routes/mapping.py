@@ -23,28 +23,34 @@ bp = Blueprint('mapping_data', __name__)
 map_data_db = {}
 markers_db = {}
 
-@bp.route('/api/getml', methods=['GET'])
+@bp.route('/api/v1/base/maps', methods=['GET'])
 def get_map_list():        
-    map_list = current_app.config['MAP_LIST']
+    robot = current_app.config.get('ROBOT')
+    map_list = robot.base.maps.list()
+    if map_list is None:
+        return jsonify({"error": "No map list found"}), 404
     return jsonify({"map_list": map_list})
 
-@bp.route('/api/getmap/<int:selected_map_id>', methods=['GET'])
+@bp.route('/api/v1/base/maps/<int:selected_map_id>', methods=['GET'])
 def get_compressed_map_data(selected_map_id):
-    if current_app.config['MAP_LIST'] is None:
-        return jsonify({"error": "No map list found"}), 200
+    map_list = current_app.config.get('MAP_LIST')
+    if not map_list:
+        return jsonify({"error": "No map list found"}), 404
 
-    if selected_map_id not in current_app.config['MAP_LIST']:
-        return jsonify({"error": "Invalid map ID: " + str(selected_map_id)}), 200
-        
+    if selected_map_id not in map_list:
+        return jsonify({"error": f"Invalid map ID: {selected_map_id}"}), 404
+
     if selected_map_id not in map_data_db:
-        map_data = current_app.config['MAP_DATA'][selected_map_id]
+        map_data = current_app.config.get('MAP_DATA', {}).get(selected_map_id)
         if map_data is None:
-            robot = current_app.config['ROBOT']
-            map_data = robot.get_map(selected_map_id)
+            robot = current_app.config.get('ROBOT')
+            if not robot:
+                return jsonify({"error": "Robot not configured"}), 500
+            map_data = robot.base.maps.fetch(selected_map_id)
             if map_data is None:
-                return jsonify({"error": "Map data not found: " + str(selected_map_id)}), 200
+                return jsonify({"error": f"Map data not found: {selected_map_id}"}), 404
         map_data_db[selected_map_id] = map_data
-        
+
     return jsonify({
         "map_id": selected_map_id, 
         "map_data": map_data_db[selected_map_id]
