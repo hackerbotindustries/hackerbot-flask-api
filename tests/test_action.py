@@ -6,7 +6,7 @@
 #
 # Created By: Allen Chien
 # Created:    April 2025
-# Updated:    2025.04.01
+# Updated:    2025.04.11
 #
 # This script tests the action API endpoints.
 #
@@ -23,241 +23,148 @@ import os
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from app.routes.action import bp  # Adjust import path based on your project structure
+from app.routes.action import bp
 
 class TestActionAPI(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        # Set up the Flask app and register the Blueprint
         cls.app = Flask(__name__)
         cls.app.register_blueprint(bp)
-        cls.client = cls.app.test_client()
         cls.app.testing = True
+        cls.client = cls.app.test_client()
 
     def setUp(self):
-        # Mock the current_app.config values for the tests
         self.mock_robot = MagicMock()
+        self.mock_robot._controller.set_json_mode.return_value = True
+        self.mock_robot._controller.set_tof_mode.return_value = True
+        self.mock_robot._controller.set_idle_mode.return_value = True
+        self.mock_robot.core.ping.return_value = 'pong'
+        self.mock_robot.core.version.return_value = '1.0.0'
+        self.mock_robot.base.initialize.return_value = 'initialized'
+        self.mock_robot.base.set_mode.return_value = 'mode set'
+        self.mock_robot.base.start.return_value = 'started'
+        self.mock_robot.base.status.return_value = 'ok'
+        self.mock_robot.base.drive.return_value = 'driving'
+        self.mock_robot.base.maps.position.return_value = {'x': 1, 'y': 2, 'angle': 90}
+        self.mock_robot.base.goto.return_value = 'arrived'
+        self.mock_robot.base.get_map.return_value = {'map_id': '123'}
+        self.mock_robot.base.list_maps.return_value = ['map1', 'map2']
+        self.mock_robot.head.look.return_value = 'looking'
+        self.mock_robot.head.eyes.gaze.return_value = 'gazing'
+        # self.mock_robot.head.get_position.return_value = {'yaw': 0.5, 'pitch': 0.3}
+        self.mock_robot.arm.gripper.calibrate.return_value = 'calibrated'
+        self.mock_robot.arm.gripper.open.return_value = 'opened'
+        self.mock_robot.arm.gripper.close.return_value = 'closed'
+        self.mock_robot.arm.move_joint.return_value = 'joint moved'
+        self.mock_robot.arm.move_joints.return_value = 'joints moved'
+        # self.mock_robot.arm.get_position.return_value = [0.1, 0.2, 0.3]
+        self.mock_robot.get_error.return_value = 'Some error'
+        self.app = self.__class__.app
         self.app.config['ROBOT'] = self.mock_robot
 
-    def test_ping_command_success(self):
-        # Test /api/ping route when robot.get_ping() is successful
-        self.mock_robot.get_ping.return_value = "true"
-        
-        response = self.client.get('/api/ping/')
+    def test_core_ping(self):
+        response = self.client.post('/api/v1/core', json={'method': 'ping'})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {'response': "true"})
+        self.assertEqual(response.json, {'response': 'pong'})
 
-    def test_ping_command_error(self):
-        # Test /api/ping route when robot.get_ping() fails
-        self.mock_robot.get_ping.return_value = None
-        self.mock_robot.get_error.return_value = "Ping error"
-        
-        response = self.client.get('/api/ping/')
+    def test_core_version(self):
+        response = self.client.get('/api/v1/core/version')
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {'error': "Ping error"})
+        self.assertEqual(response.json, {'response': '1.0.0'})
 
-    def test_version_command_success(self):
-        # Test /api/version route when robot.get_versions() is successful
-        self.mock_robot.get_versions.return_value = "1.0.0"
-        
-        response = self.client.get('/api/version/')
+    def test_core_settings_json_mode(self):
+        self.mock_robot.set_json_mode.return_value = True
+        response = self.client.post('/api/v1/core', json={'method': 'settings', 'json-responses': True})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {'response': "1.0.0"})
+        self.assertEqual(response.json, {'response': True})
 
-    def test_version_command_error(self):
-        # Test /api/version route when robot.get_versions() fails
-        self.mock_robot.get_versions.return_value = None
-        self.mock_robot.get_error.return_value = "Version error"
-        
-        response = self.client.get('/api/version/')
+    def test_core_settings_tof_mode(self):
+        self.mock_robot.set_TOFs.return_value = True
+        response = self.client.post('/api/v1/core', json={'method': 'settings', 'tofs-enabled': False})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {'error': "Version error"})
+        self.assertTrue(response.json['response'])
 
-    def test_stop_command_success(self):
-        # Test /api/stop route when robot.stop_driver() is successful
-        self.mock_robot.stop_driver.return_value = True
-        
-        response = self.client.get('/api/stop/')
+    def test_head_idle_mode_true(self):
+        self.mock_robot.head.set_idle_mode.return_value = True
+        response = self.client.put('/api/v1/head', json={'idle-mode': True})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {'response': 'STOP Command Successful'})
+        self.assertTrue(response.json['response'])
 
-    def test_stop_command_error(self):
-        # Test /api/stop route when robot.stop_driver() fails
-        self.mock_robot.stop_driver.return_value = False
-        self.mock_robot.get_error.return_value = "Stop error"
-        
-        response = self.client.get('/api/stop/')
+    def test_head_look(self):
+        response = self.client.post('/api/v1/head', json={'method': 'look', 'yaw': 1.0, 'pitch': 2.0, 'speed': 0.5})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {'error': "Stop error"})
+        self.assertEqual(response.json['response'], 'looking')
 
-    def test_machine_command_activate(self):
-        # Test /api/machine/1 route to activate machine mode
-        self.mock_robot.activate_machine_mode.return_value = True
-        
-        response = self.client.post('/api/machine/1')
+    def test_head_gaze(self):
+        response = self.client.post('/api/v1/head', json={'method': 'gaze', 'x': 3.0, 'y': 4.0})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {'response': 'MACHINE Command Successful'})
+        self.assertEqual(response.json['response'], 'gazing')
 
-    def test_machine_command_deactivate(self):
-        # Test /api/machine/0 route to deactivate machine mode
-        self.mock_robot.deactivate_machine_mode.return_value = True
-        
-        response = self.client.post('/api/machine/0')
+    # def test_head_position(self):
+    #     response = self.client.get('/api/v1/head/position')
+    #     self.assertEqual(response.status_code, 200)
+    #     self.assertIn('yaw', response.json['response'])
+
+    def test_base_initialize(self):
+        response = self.client.post('/api/v1/base', json={'method': 'initialize'})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {'response': 'MACHINE Command Successful'})
+        self.assertEqual(response.json['response'], 'initialized')
 
-    def test_machine_command_error(self):
-        # Test /api/machine route when robot.get_error() is triggered
-        self.mock_robot.activate_machine_mode.return_value = False
-        self.mock_robot.get_error.return_value = "Machine error"
-        
-        response = self.client.post('/api/machine/1')
+    def test_base_mode(self):
+        response = self.client.post('/api/v1/base', json={'method': 'mode', 'mode_id': 'explore'})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {'error': "Machine error"})
+        self.assertEqual(response.json['response'], 'mode set')
 
-    def test_init_command_success(self):
-        # Test /api/init route when robot.init_driver() is successful
-        self.mock_robot.init_driver.return_value = True
-        
-        response = self.client.get('/api/init/')
+    def test_base_status(self):
+        response = self.client.get('/api/v1/base/status')
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {'response': 'INIT Command Successful'})
+        self.assertEqual(response.json['response'], 'ok')
 
-    def test_init_command_error(self):
-        # Test /api/init route when robot.init_driver() fails
-        self.mock_robot.init_driver.return_value = False
-        self.mock_robot.get_error.return_value = "Init error"
-        
-        response = self.client.get('/api/init/')
+    def test_base_drive(self):
+        response = self.client.post('/api/v1/base/actions', json={'linear_velocity': 1.0, 'angle_velocity': 0.2})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {'error': "Init error"})
+        self.assertEqual(response.json['response'], 'driving')
 
-    def test_goto_command_success(self):
-        # Test /api/goto/<param> route when robot.goto_pos() is successful
-        self.mock_robot.goto_pos.return_value = True
-        
-        response = self.client.post('/api/goto/1.3,2.3,90,10')
+    def test_base_position(self):
+        response = self.client.get('/api/v1/base/maps/position')
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {'response': 'GOTO Command Successful'})
+        self.assertIn('x', response.json['response'])
 
-    def test_goto_command_error(self):
-        # Test /api/goto/<param> route when robot.goto_pos() fails
-        self.mock_robot.goto_pos.return_value = False
-        self.mock_robot.get_error.return_value = "Goto error"
-        
-        response = self.client.post('/api/goto/1.3,2.3,90,1')
+    def test_base_goto(self):
+        response = self.client.post('/api/v1/base/maps', json={'x': 1.0, 'y': 2.0, 'angle': 90, 'speed': 0.5})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {'error': "Goto error"})
+        self.assertEqual(response.json['response'], 'arrived')
 
-    def test_enter_command_success(self):
-        # Test /api/enter route when robot.leave_base() is successful
-        self.mock_robot.leave_base.return_value = True
-        
-        response = self.client.get('/api/enter/')
+    def test_gripper_calibrate(self):
+        response = self.client.post('/api/v1/arm/gripper', json={'method': 'calibrate'})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {'response': 'Enter Command Successful'})
+        self.assertEqual(response.json['response'], 'calibrated')
 
-    def test_enter_command_error(self):
-        # Test /api/enter route when robot.leave_base() fails
-        self.mock_robot.leave_base.return_value = False
-        self.mock_robot.get_error.return_value = "Enter error"
-        
-        response = self.client.get('/api/enter/')
+    def test_gripper_open(self):
+        response = self.client.post('/api/v1/arm/gripper', json={'method': 'open'})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {'error': "Enter error"})
+        self.assertEqual(response.json['response'], 'opened')
 
-    def test_dock_command_success(self):
-        # Test /api/dock route when robot.dock() is successful
-        self.mock_robot.dock.return_value = True
-        
-        response = self.client.get('/api/dock/')
+    def test_gripper_close(self):
+        response = self.client.post('/api/v1/arm/gripper', json={'method': 'close'})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {'response': 'DOCK Command Successful'})
+        self.assertEqual(response.json['response'], 'closed')
 
-    def test_dock_command_error(self):
-        # Test /api/dock route when robot.dock() fails
-        self.mock_robot.dock.return_value = False
-        self.mock_robot.get_error.return_value = "Dock error"
-        
-        response = self.client.get('/api/dock/')
+    def test_arm_move_joint(self):
+        response = self.client.post('/api/v1/arm', json={'method': 'move-joint', 'joint': 'shoulder', 'angle': 30.0, 'speed': 0.5})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {'error': "Dock error"})
+        self.assertEqual(response.json['response'], 'joint moved')
 
-    def test_quickmap_command_success(self):
-        # Test /api/quickmap route when robot.quickmap() is successful
-        self.mock_robot.quickmap.return_value = True
-        
-        response = self.client.get('/api/quickmap/')
+    def test_arm_move_joints(self):
+        response = self.client.post('/api/v1/arm', json={'method': 'move-joints', 'angles': [0.1, 0.2], 'speed': 0.5})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {'response': 'QUICKMAP Command Successful'})
+        self.assertEqual(response.json['response'], 'joints moved')
 
-    def test_quickmap_command_error(self):
-        # Test /api/quickmap route when robot.quickmap() fails
-        self.mock_robot.quickmap.return_value = False
-        self.mock_robot.get_error.return_value = "Quickmap error"
-        
-        response = self.client.get('/api/quickmap/')
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {'error': "Quickmap error"})
-
-#### TEST HEAD COMMANDS
-
-    def test_h_idle_command_enable(self):
-        self.mock_robot.enable_idle_mode.return_value = True
-        response = self.client.post('/api/h_idle/1')
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {'response': 'H_IDLE Command Successful'})
-
-    def test_h_idle_command_disable(self):
-        self.mock_robot.disable_idle_mode.return_value = True
-        response = self.client.post('/api/h_idle/0')
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {'response': 'H_IDLE Command Successful'})
-
-    def test_h_idle_command_failure(self):
-        self.mock_robot.disable_idle_mode.return_value = False
-        self.mock_robot.get_error.return_value = 'Some error'
-        response = self.client.post('/api/h_idle/0')
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {'error': 'Some error'})
-
-    def test_h_look_command_success(self):
-        self.mock_robot.move_head.return_value = True
-        response = self.client.post('/api/h_look/1.0,2.0,30.0,0.5')
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {'response': 'H_LOOK Command Successful'})
-
-    def test_h_look_command_failure(self):
-        self.mock_robot.move_head.return_value = False
-        self.mock_robot.get_error.return_value = 'Movement failed'
-        response = self.client.post('/api/h_look/1.0,2.0,30.0,0.5')
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {'error': 'Movement failed'})
-
-    def test_h_look_command_invalid_input(self):
-        response = self.client.post('/api/h_look/invalid_data')
-        self.assertEqual(response.status_code, 200)
-        self.assertIn('could not convert string to float', response.json['error'])
-
-    def test_h_gaze_command_success(self):
-        self.mock_robot.set_gaze.return_value = True
-        response = self.client.post('/api/h_gaze/3.0,4.0')
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {'response': 'H_GAZE Command Successful'})
-
-    def test_h_gaze_command_failure(self):
-        self.mock_robot.set_gaze.return_value = False
-        self.mock_robot.get_error.return_value = 'Gaze failed'
-        response = self.client.post('/api/h_gaze/3.0,4.0')
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {'error': 'Gaze failed'})
-
-    def test_h_gaze_command_invalid_input(self):
-        response = self.client.post('/api/h_gaze/invalid_data')
-        self.assertEqual(response.status_code, 200)
-        self.assertIn('could not convert string to float', response.json['error'])
-    
+    # def test_arm_position(self):
+    #     response = self.client.get('/api/v1/arm/position')
+    #     self.assertEqual(response.status_code, 200)
+    #     self.assertIsInstance(response.json['response'], list)
 
 if __name__ == '__main__':
     unittest.main()

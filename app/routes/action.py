@@ -1,151 +1,152 @@
-################################################################################
-# Copyright (c) 2025 Hackerbot Industries LLC
-#
-# This source code is licensed under the MIT license found in the
-# LICENSE file in the root directory of this source tree.
-#
-# Created By: Allen Chien
-# Created:    April 2025
-# Updated:    2025.04.01
-#
-# This script contains the action API endpoints.
-#
-# Special thanks to the following for their code contributions to this codebase:
-# Allen Chien - https://github.com/AllenChienXXX
-################################################################################
-
-
-from flask import Blueprint, jsonify, current_app
+from flask import Blueprint, request, jsonify, current_app
 
 bp = Blueprint('action', __name__)
 
-@bp.route('/api/ping/', methods=['GET'])
-def ping_command():
+# -------------------- CORE --------------------
+@bp.route('/api/v1/core', methods=['POST'])
+def core_post():
     robot = current_app.config['ROBOT']
-    result = robot.get_ping()
-    if result:
-        return jsonify({'response': result})
-    return jsonify({'error': robot.get_error()})
+    data = request.get_json()
+    if not data or 'method' not in data:
+        return jsonify({'error': 'Missing method'}), 400
 
-@bp.route('/api/version/', methods=['GET'])
-def version_command():
+    if data['method'] == 'ping':
+        result = robot.core.ping()
+    elif data['method'] == 'settings':
+        result = True
+        if 'json-responses' in data:
+            result &= robot.set_json_mode(data['json-responses'])
+        if 'tofs-enabled' in data:
+            result &= robot.set_TOFs(data['tofs-enabled'])
+    else:
+        return jsonify({'error': 'Invalid method'}), 400
+
+    return jsonify({'response': result}) if result else jsonify({'error': robot.get_error()})
+
+@bp.route('/api/v1/core/version', methods=['GET'])
+def core_version():
     robot = current_app.config['ROBOT']
-    result = robot.get_versions()
-    if result:
-        return jsonify({'response': result})
-    return jsonify({'error': robot.get_error()})
+    result = robot.core.version()
+    return jsonify({'response': result}) if result else jsonify({'error': robot.get_error()})
 
-@bp.route('/api/stop/', methods=['GET'])
-def stop_command():
+# -------------------- BASE --------------------
+@bp.route('/api/v1/base', methods=['POST'])
+def base_post():
     robot = current_app.config['ROBOT']
-    result = robot.stop_driver()
-    if result:
-        return jsonify({'response': 'STOP Command Successful'})
-    return jsonify({'error': robot.get_error()})
+    data = request.get_json()
+    if not data or 'method' not in data:
+        return jsonify({'error': 'Missing method'}), 400
 
-@bp.route('/api/machine/<param>', methods=['POST'])
-def machine_command(param):
+    method = data['method']
+    if method == 'initialize':
+        result = robot.base.initialize()
+    elif method == 'mode':
+        result = robot.base.set_mode(data.get('mode_id'))
+    elif method == 'start':
+        result = robot.base.start()
+    elif method == 'quickmap':
+        result = robot.base.quickmap()
+    elif method == 'dock':
+        result = robot.base.dock()
+    elif method == 'kill':
+        result = robot.base.kill()
+    elif method == 'trigger-bump':
+        result = robot.base.trigger_bump(data.get('left'), data.get('right'))
+    else:
+        return jsonify({'error': 'Invalid method'}), 400
+
+    return jsonify({'response': result}) if result else jsonify({'error': robot.get_error()})
+
+@bp.route('/api/v1/base/status', methods=['GET'])
+def base_status():
     robot = current_app.config['ROBOT']
-    result = False
-    if param == '1':
-        result = robot.activate_machine_mode()
-    elif param == '0':
-        result = robot.deactivate_machine_mode()
-    if result:
-        return jsonify({'response': 'MACHINE Command Successful'})
-    return jsonify({'error': robot.get_error()})
+    result = robot.base.status()
+    return jsonify({'response': result}) if result else jsonify({'error': robot.get_error()})
 
-@bp.route('/api/init/', methods=['GET'])
-def init_command():
+@bp.route('/api/v1/base/actions', methods=['POST'])
+def base_drive():
     robot = current_app.config['ROBOT']
-    result = robot.init_driver()
-    if result:
-        return jsonify({'response': 'INIT Command Successful'})
-    return jsonify({'error': robot.get_error()})
+    data = request.get_json()
+    result = robot.base.drive(data.get('linear_velocity'), data.get('angle_velocity'))
+    return jsonify({'response': result}) if result else jsonify({'error': robot.get_error()})
 
-@bp.route('/api/goto/<param>', methods=['POST'])
-def goto_command(param):
-    try:
-        values = [float(x) for x in param.split(",")]
-        robot = current_app.config['ROBOT']
-        x_coord = values[0]
-        y_coord = values[1]
-        angle = values[2]
-        speed = values[3]
-
-        result = robot.goto_pos(x_coord, y_coord, angle, speed)
-        if result:
-            return jsonify({'response': 'GOTO Command Successful'})
-        return jsonify({'error': robot.get_error()})
-    except Exception as e:
-        return jsonify({'error': str(e)})
-
-@bp.route('/api/enter/', methods=['GET'])
-def enter_command():
+@bp.route('/api/v1/base/maps/position', methods=['GET'])
+def base_position():
     robot = current_app.config['ROBOT']
-    result = robot.leave_base()
-    if result:
-        return jsonify({'response': 'Enter Command Successful'})
-    return jsonify({'error': robot.get_error()})
+    result = robot.base.maps.position()
+    return jsonify({'response': result}) if result else jsonify({'error': robot.get_error()})
 
-@bp.route('/api/dock/', methods=['GET'])
-def dock_command():
+@bp.route('/api/v1/base/maps', methods=['POST'])
+def base_goto():
     robot = current_app.config['ROBOT']
-    result = robot.dock()
-    if result:
-        return jsonify({'response': 'DOCK Command Successful'})
-    return jsonify({'error': robot.get_error()})
+    data = request.get_json()
+    result = robot.base.goto(data.get('x'), data.get('y'), data.get('angle'), data.get('speed'))
+    return jsonify({'response': result}) if result else jsonify({'error': robot.get_error()})
 
-@bp.route('/api/quickmap/', methods=['GET'])
-def quickmap_command():
+# -------------------- HEAD --------------------
+@bp.route('/api/v1/head', methods=['PUT'])
+def head_settings():
     robot = current_app.config['ROBOT']
-    result = robot.quickmap()
-    if result:
-        return jsonify({'response': 'QUICKMAP Command Successful'})
-    return jsonify({'error': robot.get_error()})
+    data = request.get_json()
+    result = robot.head.set_idle_mode(data.get('idle-mode'))
+    return jsonify({'response': result}) if result else jsonify({'error': robot.get_error()})
 
-####### HEAD COMMANDS
-
-@bp.route('/api/h_idle/<param>', methods=['POST'])
-def h_idle_command(param):
+@bp.route('/api/v1/head', methods=['POST'])
+def head_command():
     robot = current_app.config['ROBOT']
-    result = False
-    if param == '1':
-        result = robot.enable_idle_mode()
-    elif param == '0':
-        result = robot.disable_idle_mode()
-    if result:
-        return jsonify({'response': 'H_IDLE Command Successful'})
-    return jsonify({'error': robot.get_error()})
+    data = request.get_json()
+    method = data.get('method')
 
-@bp.route('/api/h_look/<param>', methods=['POST'])
-def h_look_command(param):
-    try:
-        values = [float(x) for x in param.split(",")]
-        robot = current_app.config['ROBOT']
-        x_coord = values[0]
-        y_coord = values[1]
-        angle = values[2]
-        speed = values[3]
+    if method == 'look':
+        result = robot.head.look(data.get('yaw'), data.get('pitch'), data.get('speed'))
+    elif method == 'gaze':
+        result = robot.head.eyes.gaze(data.get('x'), data.get('y'))
+    else:
+        return jsonify({'error': 'Invalid method'}), 400
 
-        result = robot.move_head(x_coord, y_coord, angle, speed)
-        if result:
-            return jsonify({'response': 'H_LOOK Command Successful'})
-        return jsonify({'error': robot.get_error()})
-    except Exception as e:
-        return jsonify({'error': str(e)})
-    
-@bp.route('/api/h_gaze/<param>', methods=['POST'])
-def h_gaze_command(param):
-    try:
-        values = [float(x) for x in param.split(",")]
-        robot = current_app.config['ROBOT']
-        x_coord = values[0]
-        y_coord = values[1]
+    return jsonify({'response': result}) if result else jsonify({'error': robot.get_error()})
 
-        result = robot.set_gaze(x_coord, y_coord)
-        if result:
-            return jsonify({'response': 'H_GAZE Command Successful'})
-        return jsonify({'error': robot.get_error()})
-    except Exception as e:
-        return jsonify({'error': str(e)})
+@bp.route('/api/v1/head/position', methods=['GET'])
+def head_position():
+    robot = current_app.config['ROBOT']
+    result = robot.head.get_position()
+    return jsonify({'response': result}) if result else jsonify({'error': robot.get_error()})
+
+# -------------------- ARM --------------------
+@bp.route('/api/v1/arm/gripper', methods=['POST'])
+def gripper_command():
+    robot = current_app.config['ROBOT']
+    data = request.get_json()
+    method = data.get('method')
+
+    if method == 'calibrate':
+        result = robot.arm.gripper.calibrate()
+    elif method == 'open':
+        result = robot.arm.gripper.open()
+    elif method == 'close':
+        result = robot.arm.gripper.close()
+    else:
+        return jsonify({'error': 'Invalid method'}), 400
+
+    return jsonify({'response': result}) if result else jsonify({'error': robot.get_error()})
+
+@bp.route('/api/v1/arm', methods=['POST'])
+def arm_command():
+    robot = current_app.config['ROBOT']
+    data = request.get_json()
+    method = data.get('method')
+
+    if method == 'move-joint':
+        result = robot.arm.move_joint(data.get('joint'), data.get('angle'), data.get('speed'))
+    elif method == 'move-joints':
+        result = robot.arm.move_joints(data.get('angles'), data.get('speed'))
+    else:
+        return jsonify({'error': 'Invalid method'}), 400
+
+    return jsonify({'response': result}) if result else jsonify({'error': robot.get_error()})
+
+@bp.route('/api/v1/arm/position', methods=['GET'])
+def arm_position():
+    robot = current_app.config['ROBOT']
+    result = robot.arm.get_position()
+    return jsonify({'response': result}) if result else jsonify({'error': robot.get_error()})

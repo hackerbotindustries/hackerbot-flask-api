@@ -25,56 +25,62 @@ from app import create_app
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from app.routes.mapping import bp
+from app.routes.mapping import bp, map_data_db
 
 class TestMappingDataAPI(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        # Set up the Flask app and register the Blueprint
         cls.app = Flask(__name__)
         cls.app.register_blueprint(bp)
         cls.client = cls.app.test_client()
         cls.app.testing = True
 
     def setUp(self):
-        # Mock the current_app.config values for the tests
         self.mock_robot = MagicMock()
-        self.app.config['MAP_LIST'] = [1, 2, 3]  # List of map IDs
-        
-        # Set up mock responses for get_map
-        self.mock_robot.get_map.side_effect = lambda map_id: {
-            'data': f'map{map_id}',
-        }
-        
-        # Initialize MAP_DATA using the mock robot
-        self.app.config['MAP_DATA'] = {
-            map_id: self.mock_robot.get_map(map_id) for map_id in self.app.config['MAP_LIST']
-        }
-        
-        self.app.config['CURR_MAP_ID'] = 1
+        self.app = self.__class__.app
+        self.app.config['MAP_LIST'] = [1, 2, 3]
         self.app.config['ROBOT'] = self.mock_robot
 
+        self.mock_robot.base.maps.fetch.side_effect = lambda map_id: {'data': f'map{map_id}'}
+        self.app.config['MAP_DATA'] = {
+            map_id: self.mock_robot.base.maps.fetch(map_id)
+            for map_id in self.app.config['MAP_LIST']
+        }
+
+
     def test_get_map_list(self):
-        response = self.client.get('/api/getml')
+        self.mock_robot.base.maps.list.return_value = [1, 2, 3]
+        response = self.client.get('/api/v1/base/maps')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json, {"map_list": [1, 2, 3]})
 
-    def test_get_map_list_no_map_list(self):
+    def test_get_map_list_missing(self):
+        self.mock_robot.base.maps.list.return_value = None
         self.app.config['MAP_LIST'] = None
-        response = self.client.get('/api/getml')
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {"map_list": None})
+        response = self.client.get('/api/v1/base/maps')
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.json, {"error": "No map list found"})
 
-    def test_get_compressed_map_data_same_map_id(self):
-        response = self.client.get('/api/getmap/1')
+    def test_get_compressed_map_valid(self):
+        response = self.client.get('/api/v1/base/maps/1')
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {"map_id": 1, "map_data": self.app.config['MAP_DATA'][1]})
+        self.assertEqual(response.json, {
+            "map_id": 1,
+            "map_data": {'data': 'map1'}
+        })
 
-    def test_get_compressed_map_data_invalid_map_id(self):
-        response = self.client.get('/api/getmap/99')
-        self.assertEqual(response.status_code, 200)
-        self.assertIn('error', response.json)
+    def test_get_compressed_map_invalid_id(self):
+        response = self.client.get('/api/v1/base/maps/999')
+        self.assertEqual(response.status_code, 404)
+        self.assertIn("Invalid map ID", response.json["error"])
+
+    def test_get_compressed_map_robot_missing(self):
+        del self.app.config['ROBOT']
+        self.app.config['MAP_DATA'] = {}
+        response = self.client.get('/api/v1/base/maps/1')
+        self.assertEqual(response.status_code, 500)
+        self.assertIn("Robot not configured", response.json["error"])
 
     def test_save_markers_success(self):
         test_data = {
