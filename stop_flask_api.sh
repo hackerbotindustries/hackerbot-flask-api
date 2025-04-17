@@ -26,12 +26,18 @@ echo "---------------------------------------------"
 echo "STOPPING HACKERBOT FLASK API"
 echo "---------------------------------------------"
 
-# Find and kill Flask process
+# First try finding by port (if known)
 FLASK_PID=$(lsof -ti :$FLASK_PORT)
+
+# Fallback: find flask process explicitly
+if [ -z "$FLASK_PID" ]; then
+    FLASK_PID=$(pgrep -f "flask run")
+fi
+
 if [ -n "$FLASK_PID" ]; then
     echo "Stopping Flask backend (PID: $FLASK_PID)..."
     kill -2 "$FLASK_PID"  # Send SIGINT (Ctrl+C)
-    sleep 2  # Give some time for graceful shutdown
+    sleep 2  # Give it time to shut down
     if ps -p "$FLASK_PID" > /dev/null; then
         echo "Force killing Flask backend..."
         kill -9 "$FLASK_PID"
