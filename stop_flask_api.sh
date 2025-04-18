@@ -36,16 +36,19 @@ fi
 
 if [ -n "$FLASK_PID" ]; then
     echo "Stopping Flask backend (PID: $FLASK_PID)..."
-    kill -2 "$FLASK_PID"  # Send SIGINT (Ctrl+C)
+    kill -2 $FLASK_PID  # no quotes here!
     sleep 2  # Give it time to shut down
-    if ps -p "$FLASK_PID" > /dev/null; then
-        echo "Force killing Flask backend..."
-        kill -9 "$FLASK_PID"
-    fi
+    for pid in $FLASK_PID; do
+        if ps -p "$pid" > /dev/null; then
+            echo "Force killing Flask backend PID $pid..."
+            kill -9 "$pid"
+        fi
+    done
     echo "Flask backend stopped."
 else
     echo "Flask backend not running."
 fi
+
 
 echo "---------------------------------------------"
 echo "CHECKING SERIAL PORT $SERIAL_PORT"

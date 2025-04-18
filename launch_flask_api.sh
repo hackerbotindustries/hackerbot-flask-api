@@ -59,7 +59,8 @@ echo "STARTING HACKERBOT FLASK API"
 echo "---------------------------------------------"
 
 # Start Flask Backend
-FLASK_APP=app.py FLASK_ENV=development flask run --host=0.0.0.0 --port=$FLASK_PORT --no-debugger --no-reload >> "$logfile_backend" 2>&1 &
+# FLASK_APP=app.py FLASK_ENV=development flask run --host=0.0.0.0 --port=$FLASK_PORT --no-debugger --no-reload >> "$logfile_backend" 2>&1 &
+FLASK_ENV=development flask run --host=0.0.0.0 --port=$FLASK_PORT --no-debugger --no-reload >> "$logfile_backend" 2>&1 &
 PID_BACKEND=$!
 
 
