@@ -77,7 +77,7 @@ def base_position():
     return jsonify({'response': result}) if result else jsonify({'error': robot.get_error()})
 
 @bp.route('/api/v1/base/maps', methods=['POST'])
-def base_maps():
+def base_goto():
     robot = current_app.config['ROBOT']
     data = request.get_json()
     method = data.get('method')
