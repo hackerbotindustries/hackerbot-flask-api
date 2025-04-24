@@ -83,6 +83,8 @@ def base_goto():
     method = data.get('method')
     if method == 'goto':
         print(data)
+        if data.get('x') is None or data.get('y') is None or data.get('angle') is None or data.get('speed') is None:
+            return jsonify({'error': 'Missing parameters'}), 400
         result = robot.base.maps.goto(data.get('x'), data.get('y'), data.get('angle'), data.get('speed'))
         return jsonify({'response': result}) if result else jsonify({'error': robot.get_error()})
 
