@@ -19,9 +19,6 @@
 # Ports for Flask and React
 FLASK_PORT=5000
 
-# TODO: Change this to your actual serial port
-SERIAL_PORT="/dev/ttyACM1"
-
 echo "---------------------------------------------"
 echo "STOPPING HACKERBOT FLASK API"
 echo "---------------------------------------------"
@@ -54,15 +51,20 @@ echo "---------------------------------------------"
 echo "CHECKING SERIAL PORT $SERIAL_PORT"
 echo "---------------------------------------------"
 
-# Check if the serial port is occupied
-if lsof "$SERIAL_PORT" &>/dev/null; then
-    SERIAL_PID=$(lsof -t "$SERIAL_PORT")
-    echo "Releasing serial port $SERIAL_PORT (PID: $SERIAL_PID)..."
-    kill -9 "$SERIAL_PID"
-    echo "Serial port $SERIAL_PORT is now free."
-else
-    echo "Serial port $SERIAL_PORT is not occupied."
-fi
+for SERIAL_PORT in /dev/ttyACM*; do
+    # Check if the path exists (important if no ACM devices are connected)
+    if [ -e "$SERIAL_PORT" ]; then
+        echo "Checking serial port $SERIAL_PORT..."
+        if lsof "$SERIAL_PORT" &>/dev/null; then
+            SERIAL_PID=$(lsof -t "$SERIAL_PORT")
+            echo "Releasing serial port $SERIAL_PORT (PID: $SERIAL_PID)..."
+            kill -9 "$SERIAL_PID"
+            echo "Serial port $SERIAL_PORT is now free."
+        else
+            echo "Serial port $SERIAL_PORT is not occupied."
+        fi
+    fi
+done
 
 echo "---------------------------------------------"
 echo "HACKERBOT FLASK API STOPPED"
