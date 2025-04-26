@@ -32,13 +32,6 @@ def create_app():
     
     # Store everything in app.config
     app.config['ROBOT'] = robot
-    app.config['MAP_LIST'] = robot.base.maps.list()
-    if app.config['MAP_LIST'] is not None:
-        app.config['MAP_DATA'] = {map_id: robot.base.maps.fetch(map_id) for map_id in app.config['MAP_LIST']}
-    else:
-        app.config['MAP_DATA'] = {}
-    app.config['CURR_MAP_ID'] = app.config['MAP_LIST'][0] if app.config['MAP_LIST'] else None
-
 
     # Enable CORS (Allows frontend to communicate with backend)
     CORS(app)
