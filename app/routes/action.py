@@ -80,8 +80,13 @@ def base_position():
 def base_goto():
     robot = current_app.config['ROBOT']
     data = request.get_json()
-    result = robot.base.goto(data.get('x'), data.get('y'), data.get('angle'), data.get('speed'))
-    return jsonify({'response': result}) if result else jsonify({'error': robot.get_error()})
+    method = data.get('method')
+    if method == 'goto':
+        print(data)
+        if data.get('x') is None or data.get('y') is None:
+            return jsonify({'error': 'Missing parameters'}), 400
+        result = robot.base.maps.goto(data.get('x'), data.get('y'), data.get('angle'), data.get('speed'))
+        return jsonify({'response': result}) if result else jsonify({'error': robot.get_error()})
 
 @bp.route('/api/v1/base/speech/get-voice', methods=['GET'])
 def base_get_voice():

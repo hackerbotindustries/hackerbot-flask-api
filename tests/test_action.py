@@ -47,7 +47,7 @@ class TestActionAPI(unittest.TestCase):
         self.mock_robot.base.status.return_value = 'ok'
         self.mock_robot.base.drive.return_value = 'driving'
         self.mock_robot.base.maps.position.return_value = {'x': 1, 'y': 2, 'angle': 90}
-        self.mock_robot.base.goto.return_value = 'arrived'
+        self.mock_robot.base.maps.goto.return_value = 'arrived'
         self.mock_robot.base.get_map.return_value = {'map_id': '123'}
         self.mock_robot.base.list_maps.return_value = ['map1', 'map2']
         self.mock_robot.head.look.return_value = 'looking'
@@ -132,7 +132,7 @@ class TestActionAPI(unittest.TestCase):
         self.assertIn('x', response.json['response'])
 
     def test_base_goto(self):
-        response = self.client.post('/api/v1/base/maps', json={'x': 1.0, 'y': 2.0, 'angle': 90, 'speed': 0.5})
+        response = self.client.post('/api/v1/base/maps', json={'method':'goto','x': 1.0, 'y': 2.0, 'angle': 90, 'speed': 0.5})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json['response'], 'arrived')
 

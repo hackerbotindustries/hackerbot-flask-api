@@ -33,22 +33,14 @@ def get_map_list():
 
 @bp.route('/api/v1/base/maps/<int:selected_map_id>', methods=['GET'])
 def get_compressed_map_data(selected_map_id):
-    map_list = current_app.config.get('MAP_LIST')
-    if not map_list:
-        return jsonify({"error": "No map list found"}), 404
-
-    if selected_map_id not in map_list:
-        return jsonify({"error": f"Invalid map ID: {selected_map_id}"}), 404
 
     if selected_map_id not in map_data_db:
-        map_data = current_app.config.get('MAP_DATA', {}).get(selected_map_id)
+        robot = current_app.config.get('ROBOT')
+        if not robot:
+            return jsonify({"error": "Robot not configured"}), 500
+        map_data = robot.base.maps.fetch(selected_map_id)
         if map_data is None:
-            robot = current_app.config.get('ROBOT')
-            if not robot:
-                return jsonify({"error": "Robot not configured"}), 500
-            map_data = robot.base.maps.fetch(selected_map_id)
-            if map_data is None:
-                return jsonify({"error": f"Map data not found: {selected_map_id}"}), 404
+            return jsonify({"error": f"Map data not found: {selected_map_id}"}), 404
         map_data_db[selected_map_id] = map_data
 
     return jsonify({

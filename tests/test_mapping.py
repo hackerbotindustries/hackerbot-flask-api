@@ -39,15 +39,9 @@ class TestMappingDataAPI(unittest.TestCase):
     def setUp(self):
         self.mock_robot = MagicMock()
         self.app = self.__class__.app
-        self.app.config['MAP_LIST'] = [1, 2, 3]
         self.app.config['ROBOT'] = self.mock_robot
 
-        self.mock_robot.base.maps.fetch.side_effect = lambda map_id: {'data': f'map{map_id}'}
-        self.app.config['MAP_DATA'] = {
-            map_id: self.mock_robot.base.maps.fetch(map_id)
-            for map_id in self.app.config['MAP_LIST']
-        }
-
+        # self.mock_robot.base.maps.fetch.side_effect = lambda map_id: {'data': f'map{map_id}'}
 
     def test_get_map_list(self):
         self.mock_robot.base.maps.list.return_value = [1, 2, 3]
@@ -63,17 +57,19 @@ class TestMappingDataAPI(unittest.TestCase):
         self.assertEqual(response.json, {"error": "No map list found"})
 
     def test_get_compressed_map_valid(self):
+        self.mock_robot.base.maps.fetch.return_value = 'map1'
         response = self.client.get('/api/v1/base/maps/1')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json, {
             "map_id": 1,
-            "map_data": {'data': 'map1'}
+            "map_data": 'map1'
         })
 
     def test_get_compressed_map_invalid_id(self):
+        self.mock_robot.base.maps.fetch.return_value = None
         response = self.client.get('/api/v1/base/maps/999')
         self.assertEqual(response.status_code, 404)
-        self.assertIn("Invalid map ID", response.json["error"])
+        self.assertIn("Map data not found", response.json["error"])
 
     def test_get_compressed_map_robot_missing(self):
         del self.app.config['ROBOT']
