@@ -52,6 +52,8 @@ def base_post():
         result = robot.base.kill()
     elif method == 'trigger-bump':
         result = robot.base.trigger_bump(data.get('left'), data.get('right'))
+    elif method == 'speak':
+        result = robot.base.speak(data.get('model_src'), data.get('text'), data.get("speaker_id"))
     else:
         return jsonify({'error': 'Invalid method'}), 400
 
@@ -87,40 +89,6 @@ def base_goto():
             return jsonify({'error': 'Missing parameters'}), 400
         result = robot.base.maps.goto(data.get('x'), data.get('y'), data.get('angle'), data.get('speed'))
         return jsonify({'response': result}) if result else jsonify({'error': robot.get_error()})
-
-@bp.route('/api/v1/base/speech/get-voice', methods=['GET'])
-def base_get_voice():
-    robot = current_app.config['ROBOT']
-    result = robot.base.speech.get_voice()
-    return jsonify({'response': result}) if result else jsonify({'error': robot.get_error()})
-
-@bp.route('/api/v1/base/speech/get-possible-voices', methods=['GET'])
-def base_get_possible_voice():
-    robot = current_app.config['ROBOT']
-    result = robot.base.speech.get_possible_voices()
-    return jsonify({'response': result}) if result else jsonify({'error': robot.get_error()})
-
-@bp.route('/api/v1/base/speech/set-voice', methods=['POST'])
-def base_set_voice():
-    robot = current_app.config['ROBOT']
-    data = request.get_json()
-    result = robot.base.speech.set_voice(data.get('voice'))
-    return jsonify({'response': result}) if result else jsonify({'error': robot.get_error()})
-
-@bp.route('/api/v1/base/speech/say', methods=['POST'])
-def base_say_message():
-    robot = current_app.config['ROBOT']
-    data = request.get_json()
-    result = robot.base.speech.say_message(data.get('message'))
-    return jsonify({'response': result}) if result else jsonify({'error': robot.get_error()})
-
-@bp.route('/api/v1/base/speech/save', methods=['POST'])
-def base_save_message():
-    robot = current_app.config['ROBOT']
-    data = request.get_json()
-    result = robot.base.speech.save_message(data.get('message'), data.get('file_name'), data.get('directory'), data.get('format'))
-    return jsonify({'response': result}) if result else jsonify({'error': robot.get_error()})
-
 
 # -------------------- HEAD --------------------
 @bp.route('/api/v1/head', methods=['PUT'])
