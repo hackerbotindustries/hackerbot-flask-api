@@ -15,10 +15,12 @@
 ################################################################################
 
 
-import os
-from dotenv import load_dotenv
+from pydantic import BaseSettings
 
-load_dotenv()
+class Settings(BaseSettings):
+    SECRET_KEY: str = "supersecretkey"
 
-class Config:
-    SECRET_KEY = os.getenv('SECRET_KEY', 'supersecretkey')
+    class Config:
+        env_file = ".env"
+
+settings = Settings()

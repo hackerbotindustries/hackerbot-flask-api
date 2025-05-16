@@ -15,28 +15,39 @@
 ################################################################################
 
 
-from flask import Flask, g
-from flask_cors import CORS
-from app.routes import register_routes
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 from hackerbot import Hackerbot
+from app.routes import register_routes
 
-def create_app():
-    app = Flask(__name__)
+robot = None  # Will be initialized in lifespan
 
-    # Load configuration
-    app.config.from_object('app.config.Config')
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global robot
+    print("Starting up Hackerbot...")
+    robot = Hackerbot(verbose_mode=True)
+    app.state.robot = robot
 
-    # Create a single controller instance
-    robot = Hackerbot()
-    robot.base.initialize()
-    
-    # Store everything in app.config
-    app.config['ROBOT'] = robot
+    yield  
 
-    # Enable CORS (Allows frontend to communicate with backend)
-    CORS(app)
+    print("Cleaning up Hackerbot...")
+    robot.base.destroy() 
 
-    # Register all routes
+
+def create_app() -> FastAPI:
+    app = FastAPI(lifespan=lifespan)
+
+    # Enable CORS
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
     register_routes(app)
 
     return app

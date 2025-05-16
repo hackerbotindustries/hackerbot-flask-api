@@ -15,18 +15,18 @@
 ################################################################################
 
 
-from flask import Blueprint, jsonify, current_app
+from fastapi import APIRouter, Request
 
-bp = Blueprint('status', __name__)
+router = APIRouter()
 
-@bp.route('/api/status', methods=['GET'])
-def get_status():
-    robot = current_app.config['ROBOT']
+@router.get("/status")
+def get_status(request: Request):
+    robot = request.app.state.robot
     status = robot.get_current_action()
-    return jsonify({"status": status})
+    return {"status": status}
 
-@bp.route('/api/error', methods=['GET'])
-def get_error():
-    robot = current_app.config['ROBOT']
+@router.get("/error")
+def get_error(request: Request):
+    robot = request.app.state.robot
     error = robot.get_error()
-    return jsonify({"error": error})
+    return {"error": error}
