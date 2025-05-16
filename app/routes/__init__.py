@@ -18,6 +18,6 @@
 from app.routes import status, mapping, action
 
 def register_routes(app):
-    app.include_router(status.router, prefix="/api/v1", tags=["status"])
-    app.include_router(mapping.router, prefix="/api/v1", tags=["mapping"])
-    # app.include_router(action.router, prefix="/api/v1/action", tags=["action"])
+    app.include_router(status.router, prefix="/api/v2", tags=["status"])
+    app.include_router(mapping.router, prefix="/api/v2", tags=["mapping"])
+    app.include_router(action.router, prefix="/api/v2", tags=["action"])
