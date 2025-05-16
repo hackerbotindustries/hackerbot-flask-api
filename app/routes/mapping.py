@@ -36,35 +36,39 @@ class MarkerData(BaseModel):
 @router.get("/base/maps")
 def get_map_list(request: Request):
     try:
-        robot = request.app.state.robot
-        if not robot:
-            raise HTTPException(status_code=500, detail="Robot not configured")
+        robot = getattr(request.app.state, "robot", None)
+        if robot is None:
+            raise HTTPException(status_code=500, detail="Robot is not initialized in app state")
 
         map_list = robot.base.maps.list()
         if map_list is None:
             raise HTTPException(status_code=404, detail="No map list found")
         return {"map_list": map_list}
+    except HTTPException:
+        raise  
     except Exception as e:
         return JSONResponse(content={"error": f"Failed to fetch map list: {str(e)}"}, status_code=500)
 
 @router.get("/base/maps/position")
 async def base_position(request: Request):  
     try:
-        robot = request.app.state.robot
-        if not robot:
-            raise HTTPException(status_code=500, detail="Robot not configured")
+        robot = getattr(request.app.state, "robot", None)
+        if robot is None:
+            raise HTTPException(status_code=500, detail="Robot is not initialized in app state")
 
         result = robot.base.maps.position()
         return {"response": result} if result else JSONResponse(content={"error": robot.get_error()}, status_code=500)
+    except HTTPException:
+        raise  
     except Exception as e:
         return JSONResponse(content={"error": f"Failed to fetch position: {str(e)}"}, status_code=500)
 
 @router.get("/base/maps/{selected_map_id}")
 def get_compressed_map_data(request: Request, selected_map_id: int):
     try:
-        robot = request.app.state.robot
-        if not robot:
-            raise HTTPException(status_code=500, detail="Robot not configured")
+        robot = getattr(request.app.state, "robot", None)
+        if robot is None:
+            raise HTTPException(status_code=500, detail="Robot is not initialized in app state")
 
         if selected_map_id not in map_data_db:
             map_data = robot.base.maps.fetch(selected_map_id)
@@ -76,6 +80,8 @@ def get_compressed_map_data(request: Request, selected_map_id: int):
             "map_id": selected_map_id,
             "map_data": map_data_db[selected_map_id]
         }
+    except HTTPException:
+        raise  
     except Exception as e:
         return JSONResponse(content={"error": f"Failed to fetch map data: {str(e)}"}, status_code=500)
 
@@ -90,6 +96,8 @@ def save_markers(data: MarkerData):
             "map_id": data.map_id,
             "markers": data.markers
         }
+    except HTTPException:
+        raise  
     except Exception as e:
         return JSONResponse(content={"error": f"Failed to save markers: {str(e)}"}, status_code=500)
 
@@ -106,5 +114,7 @@ def load_markers(map_id: int):
             "map_id": map_id,
             "markers": markers
         }
+    except HTTPException:
+        raise  
     except Exception as e:
         return JSONResponse(content={"error": f"Failed to load markers: {str(e)}"}, status_code=500)

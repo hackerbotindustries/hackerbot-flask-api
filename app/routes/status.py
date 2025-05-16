@@ -23,7 +23,7 @@ router = APIRouter()
 @router.get("/status")
 def get_status(request: Request):
     try:
-        robot = request.app.state.robot
+        robot = getattr(request.app.state, "robot", None)
         if robot is None:
             raise HTTPException(status_code=500, detail="Robot is not initialized in app state")
 
@@ -32,6 +32,8 @@ def get_status(request: Request):
             return JSONResponse(content={"status": None, "warning": "No current action available"}, status_code=204)
 
         return {"status": status}
+    except HTTPException:
+        raise
     except Exception as e:
         return JSONResponse(
             content={"error": f"Failed to retrieve status: {str(e)}"},
@@ -41,15 +43,17 @@ def get_status(request: Request):
 @router.get("/error")
 def get_error(request: Request):
     try:
-        robot = request.app.state.robot
+        robot = getattr(request.app.state, "robot", None)
         if robot is None:
             raise HTTPException(status_code=500, detail="Robot is not initialized in app state")
 
         error = robot.get_error()
         return {"error": error} if error else JSONResponse(
-            content={"message": "No errors reported."},
+            content={"message": "None"},
             status_code=200
         )
+    except HTTPException:
+        raise
     except Exception as e:
         return JSONResponse(
             content={"error": f"Failed to retrieve error state: {str(e)}"},

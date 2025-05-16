@@ -23,7 +23,9 @@ router = APIRouter()
 @router.post("/core")
 async def core_post(request: Request):
     try:
-        robot = request.app.state.robot
+        robot = getattr(request.app.state, "robot", None)
+        if robot is None:
+            raise HTTPException(status_code=500, detail="Robot is not initialized in app state")
         data = await request.json()
         if 'method' not in data:
             raise HTTPException(status_code=400, detail="Missing method")
@@ -40,22 +42,30 @@ async def core_post(request: Request):
             raise HTTPException(status_code=400, detail="Invalid method")
 
         return {"response": result} if result else JSONResponse(content={"error": robot.get_error()}, status_code=500)
+    except HTTPException:
+        raise
     except Exception as e:
         return JSONResponse(content={"error": f"core_post failed: {str(e)}"}, status_code=500)
 
 @router.get("/core/version")
 async def core_version(request: Request):
     try:
-        robot = request.app.state.robot
+        robot = getattr(request.app.state, "robot", None)
+        if robot is None:
+            raise HTTPException(status_code=500, detail="Robot is not initialized in app state")
         result = robot.core.version()
         return {"response": result} if result else JSONResponse(content={"error": robot.get_error()}, status_code=500)
+    except HTTPException:
+        raise
     except Exception as e:
         return JSONResponse(content={"error": f"core_version failed: {str(e)}"}, status_code=500)
 
 @router.post("/base")
 async def base_post(request: Request):
     try:
-        robot = request.app.state.robot
+        robot = getattr(request.app.state, "robot", None)
+        if robot is None:
+            raise HTTPException(status_code=500, detail="Robot is not initialized in app state")
         data = await request.json()
         method = data.get('method')
         if not method:
@@ -78,6 +88,8 @@ async def base_post(request: Request):
 
         result = handlers[method]()
         return {"response": result} if result else JSONResponse(content={"error": robot.get_error()}, status_code=500)
+    except HTTPException:
+        raise
     except Exception as e:
         return JSONResponse(content={"error": f"base_post failed: {str(e)}"}, status_code=500)
 
@@ -85,16 +97,22 @@ async def base_post(request: Request):
 @router.get("/base/status")
 async def base_status(request: Request):
     try:
-        robot = request.app.state.robot
+        robot = getattr(request.app.state, "robot", None)
+        if robot is None:
+            raise HTTPException(status_code=500, detail="Robot is not initialized in app state")
         result = robot.base.status()
         return {"response": result} if result else JSONResponse(content={"error": robot.get_error()}, status_code=500)
+    except HTTPException:
+        raise
     except Exception as e:
         return JSONResponse(content={"error": f"base_status failed: {str(e)}"}, status_code=500)
 
 @router.post("/base/maps")
 async def base_goto(request: Request):
     try:
-        robot = request.app.state.robot
+        robot = getattr(request.app.state, "robot", None)
+        if robot is None:
+            raise HTTPException(status_code=500, detail="Robot is not initialized in app state")
         data = await request.json()
         if data.get('method') == 'goto':
             if data.get('x') is None or data.get('y') is None:
@@ -103,23 +121,31 @@ async def base_goto(request: Request):
             return {"response": result} if result else JSONResponse(content={"error": robot.get_error()}, status_code=500)
         else:
             raise HTTPException(status_code=400, detail="Invalid method")
+    except HTTPException:
+        raise
     except Exception as e:
         return JSONResponse(content={"error": f"base_goto failed: {str(e)}"}, status_code=500)
 
 @router.put("/head")
 async def head_settings(request: Request):
     try:
-        robot = request.app.state.robot
+        robot = getattr(request.app.state, "robot", None)
+        if robot is None:
+            raise HTTPException(status_code=500, detail="Robot is not initialized in app state")
         data = await request.json()
         result = robot.head.set_idle_mode(data.get('idle-mode'))
         return {"response": result} if result else JSONResponse(content={"error": robot.get_error()}, status_code=500)
+    except HTTPException:
+        raise
     except Exception as e:
         return JSONResponse(content={"error": f"head_settings failed: {str(e)}"}, status_code=500)
 
 @router.post("/head")
 async def head_command(request: Request):
     try:
-        robot = request.app.state.robot
+        robot = getattr(request.app.state, "robot", None)
+        if robot is None:
+            raise HTTPException(status_code=500, detail="Robot is not initialized in app state")
         data = await request.json()
         method = data.get('method')
 
@@ -131,13 +157,17 @@ async def head_command(request: Request):
             raise HTTPException(status_code=400, detail="Invalid method")
 
         return {"response": result} if result else JSONResponse(content={"error": robot.get_error()}, status_code=500)
+    except HTTPException:
+        raise
     except Exception as e:
         return JSONResponse(content={"error": f"head_command failed: {str(e)}"}, status_code=500)
 
 @router.post("/arm/gripper")
 async def gripper_command(request: Request):
     try:
-        robot = request.app.state.robot
+        robot = getattr(request.app.state, "robot", None)
+        if robot is None:
+            raise HTTPException(status_code=500, detail="Robot is not initialized in app state")
         data = await request.json()
         method = data.get('method')
 
@@ -151,13 +181,17 @@ async def gripper_command(request: Request):
             raise HTTPException(status_code=400, detail="Invalid method")
 
         return {"response": result} if result else JSONResponse(content={"error": robot.get_error()}, status_code=500)
+    except HTTPException:
+        raise
     except Exception as e:
         return JSONResponse(content={"error": f"gripper_command failed: {str(e)}"}, status_code=500)
 
 @router.post("/arm")
 async def arm_command(request: Request):
     try:
-        robot = request.app.state.robot
+        robot = getattr(request.app.state, "robot", None)
+        if robot is None:
+            raise HTTPException(status_code=500, detail="Robot is not initialized in app state")
         data = await request.json()
         method = data.get('method')
 
@@ -169,5 +203,7 @@ async def arm_command(request: Request):
             raise HTTPException(status_code=400, detail="Invalid method")
 
         return {"response": result} if result else JSONResponse(content={"error": robot.get_error()}, status_code=500)
+    except HTTPException:
+        raise
     except Exception as e:
         return JSONResponse(content={"error": f"arm_command failed: {str(e)}"}, status_code=500)
