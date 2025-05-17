@@ -9,7 +9,7 @@
 # Created:    April 2025
 # Updated:    2025.05.16
 #
-# This script launches the Hackerbot Fast API process and occupies the serial port.
+# This script launches the Hackerbot API process and occupies the serial port.
 #
 # Special thanks to the following for their code contributions to this codebase:
 # Allen Chien - https://github.com/AllenChienXXX
@@ -20,10 +20,10 @@
 set -o pipefail
 
 BASE_DIR="$(pwd)"
-cd $HOME/hackerbot/hackerbot-flask-api/
+cd $HOME/hackerbot/hackerbot-api/
 
 # === Log setup ===
-timestamp_fastapi="hackerbot_fastapi_$(date '+%Y%m%d%H%M')"
+timestamp_fastapi="hackerbot_api_$(date '+%Y%m%d%H%M')"
 logdir="$HOME/hackerbot/logs"
 
 if [ ! -d "$logdir" ]; then
@@ -43,24 +43,24 @@ LOCAL_IP=$(hostname -I | awk '{print $1}')
 function echo_failure {
     echo ""
     echo "---------------------------------------------"
-    echo "FAILURE! Hackerbot FastAPI backend failed to launch."
+    echo "FAILURE! Hackerbot API failed to launch."
     echo "Check logs in: $logfile_backend"
     echo "---------------------------------------------"
     exit 1
 }
 
 echo "---------------------------------------------"
-echo "STARTING HACKERBOT FASTAPI API"
+echo "STARTING HACKERBOT API"
 echo "---------------------------------------------"
 
 # === Cleanup ===
-if [ -f "./stop_fast_api.sh" ]; then
-    echo "Running local stop_fast_api.sh for cleanup..."
-    if ! ./stop_fast_api.sh >> "$logfile_backend" 2>&1; then
-        echo "Warning: stop_fast_api.sh failed during cleanup"
+if [ -f "./stop_api.sh" ]; then
+    echo "Clean up existing process..."
+    if ! ./stop_api.sh >> "$logfile_backend" 2>&1; then
+        echo "Warning: stop_api.sh failed during cleanup"
     fi
 else
-    echo "stop_fast_api.sh not found. Skipping cleanup."
+    echo "stop_api.sh not found. Skipping cleanup."
 fi
 
 # === Launch FastAPI with uvicorn ===
@@ -81,13 +81,13 @@ PID_BACKEND=$!
 sleep 5
 
 if ! ps -p $PID_BACKEND > /dev/null; then
-    echo "FastAPI backend failed to start!"
+    echo "API backend failed to start!"
     echo_failure
 fi
 
 echo ""
 echo "---------------------------------------------"
-echo "SUCCESS! Hackerbot FastAPI Application is Running!"
+echo "SUCCESS! Hackerbot API Application is Running!"
 echo "FastAPI Backend: http://localhost:$API_PORT"
 echo "                 http://$LOCAL_IP:$API_PORT"
 echo "Log file: $logfile_backend"
