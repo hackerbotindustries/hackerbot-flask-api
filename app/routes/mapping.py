@@ -6,7 +6,7 @@
 #
 # Created By: Allen Chien
 # Created:    April 2025
-# Updated:    2025.04.01
+# Updated:    2025.05.16
 #
 # This script contains the mapping API endpoints.
 #
@@ -15,70 +15,106 @@
 ################################################################################
 
 
-from flask import Blueprint, jsonify, current_app, request
+from fastapi import APIRouter, Request, HTTPException
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+from typing import List, Dict, Optional
 
-bp = Blueprint('mapping_data', __name__)
+router = APIRouter()
 
-# Initialize storage dictionaries
-map_data_db = {}
-markers_db = {}
+# In-memory caches
+map_data_db: Dict[int, dict] = {}
+markers_db: Dict[int, List[dict]] = {}
 
-@bp.route('/api/v1/base/maps', methods=['GET'])
-def get_map_list():        
-    robot = current_app.config.get('ROBOT')
-    map_list = robot.base.maps.list()
-    if map_list is None:
-        return jsonify({"error": "No map list found"}), 404
-    return jsonify({"map_list": map_list})
+# --- Request Body Schema ---
+class MarkerData(BaseModel):
+    map_id: int
+    markers: List[dict]
 
-@bp.route('/api/v1/base/maps/<int:selected_map_id>', methods=['GET'])
-def get_compressed_map_data(selected_map_id):
+# --- Routes ---
 
-    if selected_map_id not in map_data_db:
-        robot = current_app.config.get('ROBOT')
-        if not robot:
-            return jsonify({"error": "Robot not configured"}), 500
-        map_data = robot.base.maps.fetch(selected_map_id)
-        if map_data is None:
-            return jsonify({"error": f"Map data not found: {selected_map_id}"}), 404
-        map_data_db[selected_map_id] = map_data
-
-    return jsonify({
-        "map_id": selected_map_id, 
-        "map_data": map_data_db[selected_map_id]
-    })
-
-@bp.route('/api/save-markers', methods=['POST'])
-def save_markers():
+@router.get("/base/maps")
+def get_map_list(request: Request):
     try:
-        data = request.json  # Get JSON data from the frontend
-        map_id = data.get("map_id")
-        markers = data.get("markers", [])
-        
-        if map_id is None:
-            return jsonify({"error": "map_id is required"}), 200
-            
-        markers_db[map_id] = markers  # Store markers for specific map_id
+        robot = getattr(request.app.state, "robot", None)
+        if robot is None:
+            raise HTTPException(status_code=500, detail="Robot is not initialized in app state")
 
-        return jsonify({
+        map_list = robot.base.maps.list()
+        if map_list is None:
+            raise HTTPException(status_code=404, detail="No map list found")
+        return {"map_list": map_list}
+    except HTTPException:
+        raise  
+    except Exception as e:
+        return JSONResponse(content={"error": f"Failed to fetch map list: {str(e)}"}, status_code=500)
+
+@router.get("/base/maps/position")
+async def base_position(request: Request):  
+    try:
+        robot = getattr(request.app.state, "robot", None)
+        if robot is None:
+            raise HTTPException(status_code=500, detail="Robot is not initialized in app state")
+
+        result = robot.base.maps.position()
+        return {"response": result} if result else JSONResponse(content={"error": robot.get_error()}, status_code=500)
+    except HTTPException:
+        raise  
+    except Exception as e:
+        return JSONResponse(content={"error": f"Failed to fetch position: {str(e)}"}, status_code=500)
+
+@router.get("/base/maps/{selected_map_id}")
+def get_compressed_map_data(request: Request, selected_map_id: int):
+    try:
+        robot = getattr(request.app.state, "robot", None)
+        if robot is None:
+            raise HTTPException(status_code=500, detail="Robot is not initialized in app state")
+
+        if selected_map_id not in map_data_db:
+            map_data = robot.base.maps.fetch(selected_map_id)
+            if map_data is None:
+                raise HTTPException(status_code=404, detail=f"Map data not found for ID {selected_map_id}")
+            map_data_db[selected_map_id] = map_data
+
+        return {
+            "map_id": selected_map_id,
+            "map_data": map_data_db[selected_map_id]
+        }
+    except HTTPException:
+        raise  
+    except Exception as e:
+        return JSONResponse(content={"error": f"Failed to fetch map data: {str(e)}"}, status_code=500)
+
+@router.post("/save-markers")
+def save_markers(data: MarkerData):
+    try:
+        if data.map_id is None:
+            raise HTTPException(status_code=400, detail="map_id is required")
+
+        markers_db[data.map_id] = data.markers
+        return {
+            "map_id": data.map_id,
+            "markers": data.markers
+        }
+    except HTTPException:
+        raise  
+    except Exception as e:
+        return JSONResponse(content={"error": f"Failed to save markers: {str(e)}"}, status_code=500)
+
+@router.get("/load-markers/{map_id}")
+def load_markers(map_id: int):
+    try:
+        markers = markers_db.get(map_id)
+        if markers is None:
+            return JSONResponse(
+                content={"map_id": map_id, "markers": [], "warning": "No markers found for this map_id"},
+                status_code=200
+            )
+        return {
             "map_id": map_id,
             "markers": markers
-        }), 200
+        }
+    except HTTPException:
+        raise  
     except Exception as e:
-        return jsonify({"error": str(e)}), 200
-
-@bp.route('/api/load-markers/<int:map_id>', methods=['GET'])
-def load_markers(map_id):
-    try:
-        if map_id not in markers_db:
-            return jsonify({
-                "map_id": map_id,
-                "markers": []
-            }), 200
-            
-        return jsonify({
-            "map_id": map_id,
-            "markers": markers_db[map_id]
-        }), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 200
+        return JSONResponse(content={"error": f"Failed to load markers: {str(e)}"}, status_code=500)

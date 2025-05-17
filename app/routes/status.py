@@ -6,7 +6,7 @@
 #
 # Created By: Allen Chien
 # Created:    April 2025
-# Updated:    2025.04.01
+# Updated:    2025.05.16
 #
 # This script contains the status API endpoints.
 #
@@ -15,18 +15,47 @@
 ################################################################################
 
 
-from flask import Blueprint, jsonify, current_app
+from fastapi import APIRouter, Request, HTTPException
+from fastapi.responses import JSONResponse
 
-bp = Blueprint('status', __name__)
+router = APIRouter()
 
-@bp.route('/api/status', methods=['GET'])
-def get_status():
-    robot = current_app.config['ROBOT']
-    status = robot.get_current_action()
-    return jsonify({"status": status})
+@router.get("/status")
+def get_status(request: Request):
+    try:
+        robot = getattr(request.app.state, "robot", None)
+        if robot is None:
+            raise HTTPException(status_code=500, detail="Robot is not initialized in app state")
 
-@bp.route('/api/error', methods=['GET'])
-def get_error():
-    robot = current_app.config['ROBOT']
-    error = robot.get_error()
-    return jsonify({"error": error})
+        status = robot.get_current_action()
+        if status is None:
+            return JSONResponse(content={"status": None, "warning": "No current action available"}, status_code=204)
+
+        return {"status": status}
+    except HTTPException:
+        raise
+    except Exception as e:
+        return JSONResponse(
+            content={"error": f"Failed to retrieve status: {str(e)}"},
+            status_code=500
+        )
+
+@router.get("/error")
+def get_error(request: Request):
+    try:
+        robot = getattr(request.app.state, "robot", None)
+        if robot is None:
+            raise HTTPException(status_code=500, detail="Robot is not initialized in app state")
+
+        error = robot.get_error()
+        return {"error": error} if error else JSONResponse(
+            content={"message": "None"},
+            status_code=200
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        return JSONResponse(
+            content={"error": f"Failed to retrieve error state: {str(e)}"},
+            status_code=500
+        )
