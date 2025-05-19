@@ -60,7 +60,7 @@ def test_core_settings(client, app_with_mock_robot):
 def test_core_missing_method(client):
     response = client.post("/core", json={})
     assert response.status_code == 400
-    assert response.json()["detail"] == "Missing method"
+    assert "Missing 'method' parameter" in response.json()["detail"]
 
 def test_core_invalid_method(client):
     response = client.post("/core", json={"method": "unknown"})
@@ -87,7 +87,7 @@ def test_base_drive_command(client, app_with_mock_robot):
 def test_base_invalid_method(client):
     response = client.post("/base", json={"method": "fly"})
     assert response.status_code == 422
-    assert response.json()["detail"] == "Invalid method"
+    assert "Invalid method" in response.json()["detail"]
 
 # ---------- /base/status ----------
 

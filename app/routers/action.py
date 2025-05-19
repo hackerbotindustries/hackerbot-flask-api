@@ -16,6 +16,7 @@
 
 
 from fastapi import APIRouter, Request, HTTPException, Depends
+from app.utils.request_helpers import get_required_param
 from fastapi.responses import JSONResponse
 from app.dependencies import get_robot 
 
@@ -49,12 +50,11 @@ async def core_post(request: Request, robot = Depends(get_robot)):
     """
     try:
         data = await request.json()
-        if 'method' not in data:
-            raise HTTPException(status_code=400, detail="Missing method")
+        method = get_required_param(data, 'method')
 
-        if data['method'] == 'ping':
+        if method == 'ping':
             result = robot.core.ping()
-        elif data['method'] == 'settings':
+        elif method == 'settings':
             if 'json-responses' in data:
                 result = robot.set_json_mode(data.get("json-responses"))
             if 'tofs-enabled' in data:
@@ -79,7 +79,7 @@ async def core_version(request: Request, robot = Depends(get_robot)):
 
     Raises:
         HTTPException: 500 if the robot is not initialized in app state.
-    """
+    """ 
     try:
         result = robot.core.version()
         return {"response": result} if result else JSONResponse(content={"error": robot.get_error()}, status_code=500)
@@ -117,31 +117,43 @@ async def base_post(request: Request, robot = Depends(get_robot)):
     """
     try:
         data = await request.json()
-        method = data.get('method')
-        if not method:
-            raise HTTPException(status_code=400, detail="Missing method")
+        method = get_required_param(data, 'method')
 
         handlers = {
             'initialize': robot.base.initialize,
-            'mode': lambda: robot.base.set_mode(data.get('mode_id')),
+            'mode': lambda: robot.base.set_mode(get_required_param(data, 'mode_id')),
             'start': robot.base.start,
             'quickmap': robot.base.quickmap,
             'dock': robot.base.dock,
             'kill': robot.base.kill,
-            'trigger-bump': lambda: robot.base.trigger_bump(data.get('left'), data.get('right')),
-            'speak': lambda: robot.base.speak(data.get('model_src'), data.get('text'), data.get("speaker_id")),
-            'drive': lambda: robot.base.drive(data.get('linear_velocity'), data.get('angle_velocity'))
+            'trigger-bump': lambda: robot.base.trigger_bump(
+                get_required_param(data, 'left'),
+                get_required_param(data, 'right')
+            ),
+            'speak': lambda: robot.base.speak(
+                get_required_param(data, 'model_src'),
+                get_required_param(data, 'text'),
+                get_required_param(data, 'speaker_id')
+            ),
+            'drive': lambda: robot.base.drive(
+                get_required_param(data, 'linear_velocity'),
+                get_required_param(data, 'angle_velocity')
+            )
         }
 
         if method not in handlers:
-            raise HTTPException(status_code=422, detail="Invalid method")
+            raise HTTPException(status_code=422, detail=f"Invalid method '{method}'")
 
         result = handlers[method]()
-        return {"response": result} if result else JSONResponse(content={"error": robot.get_error()}, status_code=500)
+        return {"response": result} if result else JSONResponse(
+            content={"error": robot.get_error()}, status_code=500)
+
     except HTTPException:
         raise
     except Exception as e:
-        return JSONResponse(content={"error": f"base_post failed: {str(e)}"}, status_code=500)
+        return JSONResponse(
+            content={"error": f"base_post failed: {str(e)}"},
+            status_code=500)
 
 @router.get("/base/status")
 async def base_status(request: Request, robot = Depends(get_robot)):
@@ -184,7 +196,7 @@ async def head_settings(request: Request, robot = Depends(get_robot)):
     """
     try:
         data = await request.json()
-        result = robot.head.set_idle_mode(data.get('idle-mode'))
+        result = robot.head.set_idle_mode(get_required_param(data, 'idle-mode'))
         return {"response": result} if result else JSONResponse(content={"error": robot.get_error()}, status_code=500)
     except HTTPException:
         raise
@@ -224,32 +236,33 @@ async def head_command(request: Request, robot = Depends(get_robot)):
     """
     try:
         data = await request.json()
-        method = data.get('method')
+        method = get_required_param(data, 'method')
 
         if method == 'look':
-            yaw = data.get('yaw')
-            pitch = data.get('pitch')
-            speed = data.get('speed')
-            if yaw is None or pitch is None or speed is None:
-                raise HTTPException(status_code=400, detail="Missing 'yaw', 'pitch', or 'speed'")
+            yaw = get_required_param(data, 'yaw')
+            pitch = get_required_param(data, 'pitch')
+            speed = get_required_param(data, 'speed')
             result = robot.head.look(yaw, pitch, speed)
 
         elif method == 'gaze':
-            x = data.get('x')
-            y = data.get('y')
-            if x is None or y is None:
-                raise HTTPException(status_code=400, detail="Missing 'x' or 'y'")
+            x = get_required_param(data, 'x')
+            y = get_required_param(data, 'y')
             result = robot.head.eyes.gaze(x, y)
+
         else:
             raise HTTPException(status_code=422, detail="Invalid method")
 
         return {"response": result} if result else JSONResponse(
             content={"error": robot.get_error()}, status_code=500
         )
+
     except HTTPException:
         raise
     except Exception as e:
-        return JSONResponse(content={"error": f"head_command failed: {str(e)}"}, status_code=500)
+        return JSONResponse(
+            content={"error": f"head_command failed: {str(e)}"},
+            status_code=500
+        )
 
 @router.post("/arm/gripper")
 async def gripper_command(request: Request, robot = Depends(get_robot)):
@@ -272,7 +285,7 @@ async def gripper_command(request: Request, robot = Depends(get_robot)):
     """
     try:
         data = await request.json()
-        method = data.get('method')
+        method = get_required_param(data, 'method')
 
         if method == 'calibrate':
             result = robot.arm.gripper.calibrate()
@@ -283,11 +296,17 @@ async def gripper_command(request: Request, robot = Depends(get_robot)):
         else:
             raise HTTPException(status_code=422, detail="Invalid method")
 
-        return {"response": result} if result else JSONResponse(content={"error": robot.get_error()}, status_code=500)
+        return {"response": result} if result else JSONResponse(
+            content={"error": robot.get_error()}, status_code=500
+        )
+
     except HTTPException:
         raise
     except Exception as e:
-        return JSONResponse(content={"error": f"gripper_command failed: {str(e)}"}, status_code=500)
+        return JSONResponse(
+            content={"error": f"gripper_command failed: {str(e)}"},
+            status_code=500
+        )
 
 @router.post("/arm")
 async def arm_command(request: Request, robot = Depends(get_robot)):
@@ -313,30 +332,33 @@ async def arm_command(request: Request, robot = Depends(get_robot)):
     """
     try:
         data = await request.json()
-        method = data.get('method')
+        method = get_required_param(data, 'method')
 
         if method == 'move-joint':
-            joint = data.get('joint')
-            angle = data.get('angle')
-            speed = data.get('speed')
-            if joint is None or angle is None or speed is None:
-                raise HTTPException(status_code=400, detail="Missing 'joint', 'angle', or 'speed'")
+            joint = get_required_param(data, 'joint')
+            angle = get_required_param(data, 'angle')
+            speed = get_required_param(data, 'speed')
             result = robot.arm.move_joint(joint, angle, speed)
 
         elif method == 'move-joints':
-            angles = data.get('angles')
-            speed = data.get('speed')
-            if angles is None or not isinstance(angles, list) or speed is None:
-                raise HTTPException(status_code=400, detail="Missing or invalid 'angles' or 'speed'")
+            angles = get_required_param(data, 'angles')
+            if not isinstance(angles, list):
+                raise HTTPException(status_code=400, detail="'angles' must be a list")
+            speed = get_required_param(data, 'speed')
             result = robot.arm.move_joints(angles, speed)
 
         else:
             raise HTTPException(status_code=422, detail="Invalid method")
 
         return {"response": result} if result else JSONResponse(
-            content={"error": robot.get_error()}, status_code=500
+            content={"error": robot.get_error()},
+            status_code=500
         )
+
     except HTTPException:
         raise
     except Exception as e:
-        return JSONResponse(content={"error": f"arm_command failed: {str(e)}"}, status_code=500)
+        return JSONResponse(
+            content={"error": f"arm_command failed: {str(e)}"},
+            status_code=500
+        )

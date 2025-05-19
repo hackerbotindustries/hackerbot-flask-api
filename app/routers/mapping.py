@@ -16,6 +16,7 @@
 
 
 from fastapi import APIRouter, Request, HTTPException, Depends
+from app.utils.request_helpers import get_required_param
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import List, Dict, Optional
@@ -64,16 +65,22 @@ async def base_goto(request: Request, robot = Depends(get_robot)):
     try:
         data = await request.json()
         if data.get('method') == 'goto':
-            if data.get('x') is None or data.get('y') is None:
-                raise HTTPException(status_code=400, detail="Missing parameters")
-            result = robot.base.maps.goto(data.get('x'), data.get('y'), data.get('angle'), data.get('speed'))
-            return {"response": result} if result else JSONResponse(content={"error": robot.get_error()}, status_code=500)
+            x = get_required_param(data, 'x')
+            y = get_required_param(data, 'y')
+            angle = data.get('angle')  # Optional
+            speed = data.get('speed')  # Optional
+
+            result = robot.base.maps.goto(x, y, angle, speed)
+            return {"response": result} if result else JSONResponse(
+                content={"error": robot.get_error()}, status_code=500)
         else:
             raise HTTPException(status_code=422, detail="Invalid method")
     except HTTPException:
         raise
     except Exception as e:
-        return JSONResponse(content={"error": f"base_goto failed: {str(e)}"}, status_code=500)
+        return JSONResponse(
+            content={"error": f"base_goto failed: {str(e)}"},
+            status_code=500)
 
 @router.get("/base/maps")
 def get_map_list(request: Request, robot = Depends(get_robot)):
@@ -163,9 +170,7 @@ def save_markers(data: MarkerData):
         HTTPException: 500 if there is an error saving the markers.
     """
     try:
-        if data.map_id is None:
-            raise HTTPException(status_code=400, detail="map_id is required")
-
+        map_id = get_required_param(data.__dict__, 'map_id')
         markers_db[data.map_id] = data.markers
         return {
             "map_id": data.map_id,
