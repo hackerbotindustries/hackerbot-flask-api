@@ -23,7 +23,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from unittest.mock import AsyncMock, MagicMock
-from app.routes.action import router  # Update to correct path if different
+from app.routers.action import router  # Update to correct path if different
 
 @pytest.fixture
 def app_with_mock_robot():
@@ -64,7 +64,7 @@ def test_core_missing_method(client):
 
 def test_core_invalid_method(client):
     response = client.post("/core", json={"method": "unknown"})
-    assert response.status_code == 400
+    assert response.status_code == 422
     assert response.json()["detail"] == "Invalid method"
 
 # ---------- /core/version ----------
@@ -86,7 +86,7 @@ def test_base_drive_command(client, app_with_mock_robot):
 
 def test_base_invalid_method(client):
     response = client.post("/base", json={"method": "fly"})
-    assert response.status_code == 400
+    assert response.status_code == 422
     assert response.json()["detail"] == "Invalid method"
 
 # ---------- /base/status ----------

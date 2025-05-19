@@ -23,7 +23,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from unittest.mock import MagicMock
-from app.routes.mapping import router, map_data_db, markers_db  # adjust path as needed
+from app.routers.mapping import router, map_data_db, markers_db  # adjust path as needed
 
 @pytest.fixture
 def app_with_mock_robot():

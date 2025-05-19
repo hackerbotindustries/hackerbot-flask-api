@@ -69,7 +69,7 @@ async def base_goto(request: Request, robot = Depends(get_robot)):
             result = robot.base.maps.goto(data.get('x'), data.get('y'), data.get('angle'), data.get('speed'))
             return {"response": result} if result else JSONResponse(content={"error": robot.get_error()}, status_code=500)
         else:
-            raise HTTPException(status_code=400, detail="Invalid method")
+            raise HTTPException(status_code=422, detail="Invalid method")
     except HTTPException:
         raise
     except Exception as e:
@@ -156,7 +156,7 @@ def save_markers(data: MarkerData):
         data (MarkerData): A pydantic model containing the map ID and a list of markers to save.
 
     Returns:
-        dict: A dictionary containing the map ID and the saved markers.
+        dict: A diction"ary containing the map ID and the saved markers.
 
     Raises:
         HTTPException: 400 if the map ID is missing or invalid.

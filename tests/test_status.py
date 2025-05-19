@@ -23,7 +23,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from unittest.mock import MagicMock
-from app.routes.status import router 
+from app.routers.status import router 
 
 @pytest.fixture
 def app_with_mock_robot():

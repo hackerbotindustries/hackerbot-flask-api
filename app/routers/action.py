@@ -135,7 +135,7 @@ async def base_post(request: Request, robot = Depends(get_robot)):
         }
 
         if method not in handlers:
-            raise HTTPException(status_code=400, detail="Invalid method")
+            raise HTTPException(status_code=422, detail="Invalid method")
 
         result = handlers[method]()
         return {"response": result} if result else JSONResponse(content={"error": robot.get_error()}, status_code=500)
@@ -143,7 +143,6 @@ async def base_post(request: Request, robot = Depends(get_robot)):
         raise
     except Exception as e:
         return JSONResponse(content={"error": f"base_post failed: {str(e)}"}, status_code=500)
-
 
 @router.get("/base/status")
 async def base_status(request: Request, robot = Depends(get_robot)):
@@ -229,13 +228,25 @@ async def head_command(request: Request, robot = Depends(get_robot)):
         method = data.get('method')
 
         if method == 'look':
-            result = robot.head.look(data.get('yaw'), data.get('pitch'), data.get('speed'))
-        elif method == 'gaze':
-            result = robot.head.eyes.gaze(data.get('x'), data.get('y'))
-        else:
-            raise HTTPException(status_code=400, detail="Invalid method")
+            yaw = data.get('yaw')
+            pitch = data.get('pitch')
+            speed = data.get('speed')
+            if yaw is None or pitch is None or speed is None:
+                raise HTTPException(status_code=400, detail="Missing 'yaw', 'pitch', or 'speed'")
+            result = robot.head.look(yaw, pitch, speed)
 
-        return {"response": result} if result else JSONResponse(content={"error": robot.get_error()}, status_code=500)
+        elif method == 'gaze':
+            x = data.get('x')
+            y = data.get('y')
+            if x is None or y is None:
+                raise HTTPException(status_code=400, detail="Missing 'x' or 'y'")
+            result = robot.head.eyes.gaze(x, y)
+        else:
+            raise HTTPException(status_code=422, detail="Invalid method")
+
+        return {"response": result} if result else JSONResponse(
+            content={"error": robot.get_error()}, status_code=500
+        )
     except HTTPException:
         raise
     except Exception as e:
@@ -271,7 +282,7 @@ async def gripper_command(request: Request, robot = Depends(get_robot)):
         elif method == 'close':
             result = robot.arm.gripper.close()
         else:
-            raise HTTPException(status_code=400, detail="Invalid method")
+            raise HTTPException(status_code=422, detail="Invalid method")
 
         return {"response": result} if result else JSONResponse(content={"error": robot.get_error()}, status_code=500)
     except HTTPException:
@@ -306,13 +317,26 @@ async def arm_command(request: Request, robot = Depends(get_robot)):
         method = data.get('method')
 
         if method == 'move-joint':
-            result = robot.arm.move_joint(data.get('joint'), data.get('angle'), data.get('speed'))
-        elif method == 'move-joints':
-            result = robot.arm.move_joints(data.get('angles'), data.get('speed'))
-        else:
-            raise HTTPException(status_code=400, detail="Invalid method")
+            joint = data.get('joint')
+            angle = data.get('angle')
+            speed = data.get('speed')
+            if joint is None or angle is None or speed is None:
+                raise HTTPException(status_code=400, detail="Missing 'joint', 'angle', or 'speed'")
+            result = robot.arm.move_joint(joint, angle, speed)
 
-        return {"response": result} if result else JSONResponse(content={"error": robot.get_error()}, status_code=500)
+        elif method == 'move-joints':
+            angles = data.get('angles')
+            speed = data.get('speed')
+            if angles is None or not isinstance(angles, list) or speed is None:
+                raise HTTPException(status_code=400, detail="Missing or invalid 'angles' or 'speed'")
+            result = robot.arm.move_joints(angles, speed)
+
+        else:
+            raise HTTPException(status_code=422, detail="Invalid method")
+
+        return {"response": result} if result else JSONResponse(
+            content={"error": robot.get_error()}, status_code=500
+        )
     except HTTPException:
         raise
     except Exception as e:
