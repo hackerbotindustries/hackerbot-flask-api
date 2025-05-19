@@ -39,7 +39,7 @@ async def core_post(request: Request):
             if 'tofs-enabled' in data:
                 result &= robot.set_TOFs(data['tofs-enabled'])
         else:
-            raise HTTPException(status_code=400, detail="Invalid method")
+            raise HTTPException(status_code=422, detail="Invalid method")
 
         return {"response": result} if result else JSONResponse(content={"error": robot.get_error()}, status_code=500)
     except HTTPException:
