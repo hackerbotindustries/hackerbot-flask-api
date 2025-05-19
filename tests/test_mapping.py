@@ -40,6 +40,14 @@ def client(app_with_mock_robot):
 
 # ---------------------- GET /base/maps ----------------------
 
+def test_base_goto_success(client, app_with_mock_robot):
+    _, robot = app_with_mock_robot
+    robot.base.maps.goto.return_value = "navigating"
+    payload = {"method": "goto", "x": 1.0, "y": 2.0, "angle": 0.0, "speed": 0.5}
+    response = client.post("/base/maps", json=payload)
+    assert response.status_code == 200
+    assert response.json() == {"response": "navigating"}
+
 def test_get_map_list_success(client, app_with_mock_robot):
     _, robot = app_with_mock_robot
     robot.base.maps.list.return_value = [{"id": 1, "name": "Map A"}]
