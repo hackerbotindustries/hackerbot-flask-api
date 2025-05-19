@@ -133,7 +133,7 @@ async def base_post(request: Request, robot = Depends(get_robot)):
             'speak': lambda: robot.base.speak(
                 get_required_param(data, 'model_src'),
                 get_required_param(data, 'text'),
-                get_required_param(data, 'speaker_id')
+                data.get('speaker_id')
             ),
             'drive': lambda: robot.base.drive(
                 get_required_param(data, 'linear_velocity'),
