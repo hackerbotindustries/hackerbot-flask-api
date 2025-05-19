@@ -48,9 +48,6 @@ async def core_post(request: Request, robot = Depends(get_robot)):
         HTTPException: 422 if the method provided is invalid.
     """
     try:
-        robot = getattr(request.app.state, "robot", None)
-        if robot is None:
-            raise HTTPException(status_code=500, detail="Robot is not initialized in app state")
         data = await request.json()
         if 'method' not in data:
             raise HTTPException(status_code=400, detail="Missing method")
@@ -85,9 +82,6 @@ async def core_version(request: Request, robot = Depends(get_robot)):
         HTTPException: 500 if the robot is not initialized in app state.
     """
     try:
-        robot = getattr(request.app.state, "robot", None)
-        if robot is None:
-            raise HTTPException(status_code=500, detail="Robot is not initialized in app state")
         result = robot.core.version()
         return {"response": result} if result else JSONResponse(content={"error": robot.get_error()}, status_code=500)
     except HTTPException:
@@ -123,9 +117,6 @@ async def base_post(request: Request, robot = Depends(get_robot)):
         HTTPException: 500 if the robot is not initialized in app state.
     """
     try:
-        robot = getattr(request.app.state, "robot", None)
-        if robot is None:
-            raise HTTPException(status_code=500, detail="Robot is not initialized in app state")
         data = await request.json()
         method = data.get('method')
         if not method:
@@ -166,9 +157,6 @@ async def base_status(request: Request, robot = Depends(get_robot)):
         JSONResponse: 500 if there is an error retrieving the status.
     """
     try:
-        robot = getattr(request.app.state, "robot", None)
-        if robot is None:
-            raise HTTPException(status_code=500, detail="Robot is not initialized in app state")
         result = robot.base.status()
         return {"response": result} if result else JSONResponse(content={"error": robot.get_error()}, status_code=500)
     except HTTPException:
@@ -197,9 +185,6 @@ async def head_settings(request: Request, robot = Depends(get_robot)):
         HTTPException: 400 if 'idle-mode' is not set or is invalid.
     """
     try:
-        robot = getattr(request.app.state, "robot", None)
-        if robot is None:
-            raise HTTPException(status_code=500, detail="Robot is not initialized in app state")
         data = await request.json()
         result = robot.head.set_idle_mode(data.get('idle-mode'))
         return {"response": result} if result else JSONResponse(content={"error": robot.get_error()}, status_code=500)
@@ -240,9 +225,6 @@ async def head_command(request: Request, robot = Depends(get_robot)):
         HTTPException: 400 if the method is invalid or missing required parameters.
     """
     try:
-        robot = getattr(request.app.state, "robot", None)
-        if robot is None:
-            raise HTTPException(status_code=500, detail="Robot is not initialized in app state")
         data = await request.json()
         method = data.get('method')
 
@@ -279,9 +261,6 @@ async def gripper_command(request: Request, robot = Depends(get_robot)):
         HTTPException: 400 if the method is invalid or missing required parameters.
     """
     try:
-        robot = getattr(request.app.state, "robot", None)
-        if robot is None:
-            raise HTTPException(status_code=500, detail="Robot is not initialized in app state")
         data = await request.json()
         method = data.get('method')
 
@@ -323,9 +302,6 @@ async def arm_command(request: Request, robot = Depends(get_robot)):
         HTTPException: 400 if the method is invalid or missing required parameters.
     """
     try:
-        robot = getattr(request.app.state, "robot", None)
-        if robot is None:
-            raise HTTPException(status_code=500, detail="Robot is not initialized in app state")
         data = await request.json()
         method = data.get('method')
 

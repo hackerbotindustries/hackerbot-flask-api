@@ -62,9 +62,6 @@ async def base_goto(request: Request, robot = Depends(get_robot)):
         HTTPException: 400 if 'method' is not 'goto' or if required parameters are missing.
     """
     try:
-        robot = getattr(request.app.state, "robot", None)
-        if robot is None:
-            raise HTTPException(status_code=500, detail="Robot is not initialized in app state")
         data = await request.json()
         if data.get('method') == 'goto':
             if data.get('x') is None or data.get('y') is None:
@@ -90,10 +87,6 @@ def get_map_list(request: Request, robot = Depends(get_robot)):
         HTTPException: 500 if the robot is not initialized in app state or if an unknown error occurs.
     """
     try:
-        robot = getattr(request.app.state, "robot", None)
-        if robot is None:
-            raise HTTPException(status_code=500, detail="Robot is not initialized in app state")
-
         map_list = robot.base.maps.list()
         if map_list is None:
             raise HTTPException(status_code=404, detail="No map list found")
@@ -114,10 +107,6 @@ async def base_position(request: Request, robot = Depends(get_robot)):
         HTTPException: 500 if the robot is not initialized in app state or if there is an error retrieving the position.
     """
     try:
-        robot = getattr(request.app.state, "robot", None)
-        if robot is None:
-            raise HTTPException(status_code=500, detail="Robot is not initialized in app state")
-
         result = robot.base.maps.position()
         return {"response": result} if result else JSONResponse(content={"error": robot.get_error()}, status_code=500)
     except HTTPException:
@@ -143,10 +132,6 @@ def get_compressed_map_data(request: Request, selected_map_id: int, robot = Depe
         JSONResponse: 500 if an unknown error occurs while fetching map data.
     """
     try:
-        robot = getattr(request.app.state, "robot", None)
-        if robot is None:
-            raise HTTPException(status_code=500, detail="Robot is not initialized in app state")
-
         if selected_map_id not in map_data_db:
             map_data = robot.base.maps.fetch(selected_map_id)
             if map_data is None:
