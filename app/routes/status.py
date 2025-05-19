@@ -22,6 +22,14 @@ router = APIRouter()
 
 @router.get("/status")
 def get_status(request: Request):
+    """
+    Get the current status of the robot.
+
+    Returns a JSON response with a "status" key, which is None if no current action is available.
+    If no current action is available, a 204 status code is returned and a warning is included in the response.
+
+    Raises a 500 error if there is a problem retrieving the status.
+    """
     try:
         robot = getattr(request.app.state, "robot", None)
         if robot is None:
@@ -42,6 +50,15 @@ def get_status(request: Request):
 
 @router.get("/error")
 def get_error(request: Request):
+    """
+    Get the current error state of the robot.
+
+    Returns a JSON response with an "error" key, which is None if no error state is available.
+    If no error state is available, a 200 status code is returned with a message "None".
+    If the error state is available, a 200 status code is returned with the error message.
+
+    Raises a 500 error if there is a problem retrieving the error state.
+    """
     try:
         robot = getattr(request.app.state, "robot", None)
         if robot is None:

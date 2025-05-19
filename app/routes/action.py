@@ -22,6 +22,30 @@ router = APIRouter()
 
 @router.post("/core")
 async def core_post(request: Request):
+    """
+    Handle POST requests to the /core endpoint.
+
+    This function processes incoming requests to perform core operations on the robot.
+    It supports the following methods:
+    - 'ping': Checks the connectivity with the robot core.
+    - 'settings': Configures robot settings, including enabling/disabling JSON responses
+      and time-of-flight sensors.
+
+    Args:
+        request (Request): The incoming HTTP request containing JSON data with the method
+        and any additional parameters required.
+
+    Returns:
+        dict: A dictionary with a single key "response" containing the result of the operation
+        if successful.
+        JSONResponse: An error response with the corresponding HTTP status code and error message
+        if the operation fails or if an error occurs.
+
+    Raises:
+        HTTPException: 500 if the robot is not initialized in app state.
+        HTTPException: 400 if 'method' is missing in the request or if required parameters are missing.
+        HTTPException: 422 if the method provided is invalid.
+    """
     try:
         robot = getattr(request.app.state, "robot", None)
         if robot is None:
@@ -49,6 +73,16 @@ async def core_post(request: Request):
 
 @router.get("/core/version")
 async def core_version(request: Request):
+    """
+    Get the version of the robot core.
+
+    Returns a JSON response with the version number as a string if the operation is successful.
+    If the robot is not initialized in app state, a 500 error is returned with the error message.
+    If there is an error retrieving the version number, a 500 error is returned with the error message.
+
+    Raises:
+        HTTPException: 500 if the robot is not initialized in app state.
+    """
     try:
         robot = getattr(request.app.state, "robot", None)
         if robot is None:
@@ -62,6 +96,29 @@ async def core_version(request: Request):
 
 @router.post("/base")
 async def base_post(request: Request):
+    """
+    Perform a base command.
+
+    Accepts a JSON payload containing the command to run. The accepted commands are:
+
+    - initialize: Initialize the robot base.
+    - mode: Set the mode of the robot base. The JSON payload should include the mode ID.
+    - start: Start the robot base.
+    - quickmap: Start the quickmap process.
+    - dock: Dock the robot.
+    - kill: Kill the robot base.
+    - trigger-bump: Trigger the bump sensors. The JSON payload should include the left and right trigger states.
+    - speak: Speak a phrase. The JSON payload should include the model source, text, and speaker ID.
+    - drive: Drive the robot. The JSON payload should include the linear and angular velocities.
+
+    Returns a JSON response with a "response" key containing the result of the operation.
+    If the robot is not initialized in app state, a 500 error is returned with the error message.
+    If the operation is successful but the result is None, a 204 response is returned with a warning message.
+    If there is an error with the operation, a 500 error is returned with the error message.
+
+    Raises:
+        HTTPException: 500 if the robot is not initialized in app state.
+    """
     try:
         robot = getattr(request.app.state, "robot", None)
         if robot is None:
@@ -96,6 +153,15 @@ async def base_post(request: Request):
 
 @router.get("/base/status")
 async def base_status(request: Request):
+    """
+    Get the current status of the robot base.
+
+    Returns:
+        JSONResponse: A dictionary with a single key "response" containing the status data.
+    Raises:
+        HTTPException: 500 if the robot is not initialized in app state.
+        JSONResponse: 500 if there is an error retrieving the status.
+    """
     try:
         robot = getattr(request.app.state, "robot", None)
         if robot is None:
@@ -109,6 +175,23 @@ async def base_status(request: Request):
 
 @router.post("/base/maps")
 async def base_goto(request: Request):
+    """
+    Navigate the robot base to a specified position on the map.
+
+    This endpoint processes a JSON request containing the method 'goto' along with target coordinates
+    and optional angle and speed parameters to command the robot base to move to the specified location.
+
+    Args:
+        request (Request): The incoming HTTP request containing JSON data with the navigation method and parameters.
+
+    Returns:
+        dict: A dictionary with a single key "response" containing the result of the navigation command if successful.
+        JSONResponse: An error response with the corresponding HTTP status code and error message if the operation fails.
+
+    Raises:
+        HTTPException: 500 if the robot is not initialized in app state.
+        HTTPException: 400 if 'method' is not 'goto' or if required parameters are missing.
+    """
     try:
         robot = getattr(request.app.state, "robot", None)
         if robot is None:
@@ -128,6 +211,23 @@ async def base_goto(request: Request):
 
 @router.put("/head")
 async def head_settings(request: Request):
+    """
+    Set the idle mode of the robot head.
+
+    This endpoint processes a JSON request containing the idle mode to set for the robot head.
+    The accepted idle modes are 'idle', 'relaxed', 'focused', and 'sleeping'.
+
+    Args:
+        request (Request): The incoming HTTP request containing JSON data with the idle mode to set.
+
+    Returns:
+        dict: A dictionary with a single key "response" containing the result of the operation if successful.
+        JSONResponse: An error response with the corresponding HTTP status code and error message if the operation fails.
+
+    Raises:
+        HTTPException: 500 if the robot is not initialized in app state.
+        HTTPException: 400 if 'idle-mode' is not set or is invalid.
+    """
     try:
         robot = getattr(request.app.state, "robot", None)
         if robot is None:
@@ -142,6 +242,23 @@ async def head_settings(request: Request):
 
 @router.post("/head")
 async def head_command(request: Request):
+    """
+    Execute commands for controlling the robot's head.
+
+    This endpoint processes a JSON request containing the method to execute, along with any required parameters
+    for controlling the robot's head, such as 'look' or 'gaze'.
+
+    Args:
+        request (Request): The incoming HTTP request containing JSON data with the command method and parameters.
+
+    Returns:
+        dict: A dictionary with a single key "response" containing the result of the command if successful.
+        JSONResponse: An error response with the corresponding HTTP status code and error message if the operation fails.
+
+    Raises:
+        HTTPException: 500 if the robot is not initialized in app state.
+        HTTPException: 400 if the method is invalid or missing required parameters.
+    """
     try:
         robot = getattr(request.app.state, "robot", None)
         if robot is None:
@@ -164,6 +281,23 @@ async def head_command(request: Request):
 
 @router.post("/arm/gripper")
 async def gripper_command(request: Request):
+    """
+    Execute commands for controlling the gripper of the robot's arm.
+
+    This endpoint processes a JSON request containing the method to execute, along with any required parameters
+    for controlling the gripper, such as 'calibrate', 'open', or 'close'.
+
+    Args:
+        request (Request): The incoming HTTP request containing JSON data with the command method and parameters.
+
+    Returns:
+        dict: A dictionary with a single key "response" containing the result of the command if successful.
+        JSONResponse: An error response with the corresponding HTTP status code and error message if the operation fails.
+
+    Raises:
+        HTTPException: 500 if the robot is not initialized in app state.
+        HTTPException: 400 if the method is invalid or missing required parameters.
+    """
     try:
         robot = getattr(request.app.state, "robot", None)
         if robot is None:
@@ -188,6 +322,23 @@ async def gripper_command(request: Request):
 
 @router.post("/arm")
 async def arm_command(request: Request):
+    """
+    Execute commands for controlling the arm of the robot.
+
+    This endpoint processes a JSON request containing the method to execute, along with any required parameters
+    for controlling the arm, such as 'move-joint' or 'move-joints'.
+
+    Args:
+        request (Request): The incoming HTTP request containing JSON data with the command method and parameters.
+
+    Returns:
+        dict: A dictionary with a single key "response" containing the result of the command if successful.
+        JSONResponse: An error response with the corresponding HTTP status code and error message if the operation fails.
+
+    Raises:
+        HTTPException: 500 if the robot is not initialized in app state.
+        HTTPException: 400 if the method is invalid or missing required parameters.
+    """
     try:
         robot = getattr(request.app.state, "robot", None)
         if robot is None:

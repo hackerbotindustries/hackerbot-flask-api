@@ -35,6 +35,15 @@ class MarkerData(BaseModel):
 
 @router.get("/base/maps")
 def get_map_list(request: Request):
+    """
+    Get a list of available maps.
+
+    Returns:
+        JSONResponse: A dictionary with a single key "map_list" containing a list of map IDs and names.
+    Raises:
+        HTTPException: 404 if no map list is found.
+        HTTPException: 500 if the robot is not initialized in app state or if an unknown error occurs.
+    """
     try:
         robot = getattr(request.app.state, "robot", None)
         if robot is None:
@@ -51,6 +60,14 @@ def get_map_list(request: Request):
 
 @router.get("/base/maps/position")
 async def base_position(request: Request):  
+    """
+    Get the current position of the robot base.
+
+    Returns:
+        JSONResponse: A dictionary with a single key "response" containing the position data.
+    Raises:
+        HTTPException: 500 if the robot is not initialized in app state or if there is an error retrieving the position.
+    """
     try:
         robot = getattr(request.app.state, "robot", None)
         if robot is None:
@@ -65,6 +82,21 @@ async def base_position(request: Request):
 
 @router.get("/base/maps/{selected_map_id}")
 def get_compressed_map_data(request: Request, selected_map_id: int):
+    """
+    Retrieve compressed map data for a specific map ID.
+
+    Args:
+        request (Request): The incoming HTTP request.
+        selected_map_id (int): The ID of the map to retrieve data for.
+
+    Returns:
+        dict: A dictionary containing the map ID and its associated compressed map data.
+
+    Raises:
+        HTTPException: 500 if the robot is not initialized in app state.
+        HTTPException: 404 if no map data is found for the given ID.
+        JSONResponse: 500 if an unknown error occurs while fetching map data.
+    """
     try:
         robot = getattr(request.app.state, "robot", None)
         if robot is None:
@@ -87,6 +119,19 @@ def get_compressed_map_data(request: Request, selected_map_id: int):
 
 @router.post("/save-markers")
 def save_markers(data: MarkerData):
+    """
+    Save the given markers to the database.
+
+    Args:
+        data (MarkerData): A pydantic model containing the map ID and a list of markers to save.
+
+    Returns:
+        dict: A dictionary containing the map ID and the saved markers.
+
+    Raises:
+        HTTPException: 400 if the map ID is missing or invalid.
+        HTTPException: 500 if there is an error saving the markers.
+    """
     try:
         if data.map_id is None:
             raise HTTPException(status_code=400, detail="map_id is required")
@@ -103,6 +148,19 @@ def save_markers(data: MarkerData):
 
 @router.get("/load-markers/{map_id}")
 def load_markers(map_id: int):
+    """
+    Load the markers associated with a given map ID.
+
+    Args:
+        map_id (int): The ID of the map to load markers from.
+
+    Returns:
+        dict: A dictionary containing the map ID and a list of markers associated with the map ID.
+
+    Raises:
+        HTTPException: 400 if the map ID is invalid or missing.
+        HTTPException: 500 if there is an error loading the markers.
+    """
     try:
         markers = markers_db.get(map_id)
         if markers is None:
