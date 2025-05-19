@@ -55,11 +55,10 @@ async def core_post(request: Request, robot = Depends(get_robot)):
         if data['method'] == 'ping':
             result = robot.core.ping()
         elif data['method'] == 'settings':
-            result = True
             if 'json-responses' in data:
-                result &= robot.set_json_mode(data['json-responses'])
+                result = robot.set_json_mode(data.get("json-responses"))
             if 'tofs-enabled' in data:
-                result &= robot.set_TOFs(data['tofs-enabled'])
+                result = robot.set_TOFs(data.get("tofs-enabled"))
         else:
             raise HTTPException(status_code=422, detail="Invalid method")
 
