@@ -15,13 +15,14 @@
 ################################################################################
 
 
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Request, HTTPException, Depends
 from fastapi.responses import JSONResponse
+from app.dependencies import get_robot
 
 router = APIRouter()
 
 @router.get("/status")
-def get_status(request: Request):
+def get_status(request: Request, robot = Depends(get_robot)):
     """
     Get the current status of the robot.
 
@@ -31,10 +32,6 @@ def get_status(request: Request):
     Raises a 500 error if there is a problem retrieving the status.
     """
     try:
-        robot = getattr(request.app.state, "robot", None)
-        if robot is None:
-            raise HTTPException(status_code=500, detail="Robot is not initialized in app state")
-
         status = robot.get_current_action()
         if status is None:
             return JSONResponse(content={"status": None, "warning": "No current action available"}, status_code=204)
@@ -49,7 +46,7 @@ def get_status(request: Request):
         )
 
 @router.get("/error")
-def get_error(request: Request):
+def get_error(request: Request, robot = Depends(get_robot)):
     """
     Get the current error state of the robot.
 
@@ -60,10 +57,6 @@ def get_error(request: Request):
     Raises a 500 error if there is a problem retrieving the error state.
     """
     try:
-        robot = getattr(request.app.state, "robot", None)
-        if robot is None:
-            raise HTTPException(status_code=500, detail="Robot is not initialized in app state")
-
         error = robot.get_error()
         return {"error": error} if error else JSONResponse(
             content={"message": "None"},

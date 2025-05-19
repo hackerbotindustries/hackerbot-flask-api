@@ -15,7 +15,7 @@
 ################################################################################
 
 
-from app.routes import status, mapping, action
+from app.routers import status, mapping, action
 
 def register_routes(app):
     # v1 routes

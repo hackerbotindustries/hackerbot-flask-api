@@ -15,3 +15,10 @@
 ################################################################################
 
 
+from fastapi import Request, HTTPException
+
+def get_robot(request: Request):
+    robot = getattr(request.app.state, "robot", None)
+    if robot is None:
+        raise HTTPException(status_code=500, detail="Robot is not initialized in app state")
+    return robot

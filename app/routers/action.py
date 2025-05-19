@@ -15,13 +15,14 @@
 ################################################################################
 
 
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Request, HTTPException, Depends
 from fastapi.responses import JSONResponse
+from app.dependencies import get_robot 
 
 router = APIRouter()
 
 @router.post("/core")
-async def core_post(request: Request):
+async def core_post(request: Request, robot = Depends(get_robot)):
     """
     Handle POST requests to the /core endpoint.
 
@@ -72,7 +73,7 @@ async def core_post(request: Request):
         return JSONResponse(content={"error": f"core_post failed: {str(e)}"}, status_code=500)
 
 @router.get("/core/version")
-async def core_version(request: Request):
+async def core_version(request: Request, robot = Depends(get_robot)):
     """
     Get the version of the robot core.
 
@@ -95,7 +96,7 @@ async def core_version(request: Request):
         return JSONResponse(content={"error": f"core_version failed: {str(e)}"}, status_code=500)
 
 @router.post("/base")
-async def base_post(request: Request):
+async def base_post(request: Request, robot = Depends(get_robot)):
     """
     Perform a base command.
 
@@ -108,8 +109,10 @@ async def base_post(request: Request):
     - dock: Dock the robot.
     - kill: Kill the robot base.
     - trigger-bump: Trigger the bump sensors. The JSON payload should include the left and right trigger states.
-    - speak: Speak a phrase. The JSON payload should include the model source, text, and speaker ID.
+    - speak: Speak a phrase. The JSON payload should include the model source, text, and speaker ID. 
+      Example: {"model_src": "en_GB-semaine-medium", "text": "Hello, world!", "speaker": None}
     - drive: Drive the robot. The JSON payload should include the linear and angular velocities.
+      Example: {"linear": 0.0, "angular": 65.0}
 
     Returns a JSON response with a "response" key containing the result of the operation.
     If the robot is not initialized in app state, a 500 error is returned with the error message.
@@ -152,7 +155,7 @@ async def base_post(request: Request):
 
 
 @router.get("/base/status")
-async def base_status(request: Request):
+async def base_status(request: Request, robot = Depends(get_robot)):
     """
     Get the current status of the robot base.
 
@@ -173,49 +176,14 @@ async def base_status(request: Request):
     except Exception as e:
         return JSONResponse(content={"error": f"base_status failed: {str(e)}"}, status_code=500)
 
-@router.post("/base/maps")
-async def base_goto(request: Request):
-    """
-    Navigate the robot base to a specified position on the map.
-
-    This endpoint processes a JSON request containing the method 'goto' along with target coordinates
-    and optional angle and speed parameters to command the robot base to move to the specified location.
-
-    Args:
-        request (Request): The incoming HTTP request containing JSON data with the navigation method and parameters.
-
-    Returns:
-        dict: A dictionary with a single key "response" containing the result of the navigation command if successful.
-        JSONResponse: An error response with the corresponding HTTP status code and error message if the operation fails.
-
-    Raises:
-        HTTPException: 500 if the robot is not initialized in app state.
-        HTTPException: 400 if 'method' is not 'goto' or if required parameters are missing.
-    """
-    try:
-        robot = getattr(request.app.state, "robot", None)
-        if robot is None:
-            raise HTTPException(status_code=500, detail="Robot is not initialized in app state")
-        data = await request.json()
-        if data.get('method') == 'goto':
-            if data.get('x') is None or data.get('y') is None:
-                raise HTTPException(status_code=400, detail="Missing parameters")
-            result = robot.base.maps.goto(data.get('x'), data.get('y'), data.get('angle'), data.get('speed'))
-            return {"response": result} if result else JSONResponse(content={"error": robot.get_error()}, status_code=500)
-        else:
-            raise HTTPException(status_code=400, detail="Invalid method")
-    except HTTPException:
-        raise
-    except Exception as e:
-        return JSONResponse(content={"error": f"base_goto failed: {str(e)}"}, status_code=500)
-
 @router.put("/head")
-async def head_settings(request: Request):
+async def head_settings(request: Request, robot = Depends(get_robot)):
     """
     Set the idle mode of the robot head.
 
     This endpoint processes a JSON request containing the idle mode to set for the robot head.
-    The accepted idle modes are 'idle', 'relaxed', 'focused', and 'sleeping'.
+    Example:
+    {"idle-mode": "True"}
 
     Args:
         request (Request): The incoming HTTP request containing JSON data with the idle mode to set.
@@ -241,12 +209,24 @@ async def head_settings(request: Request):
         return JSONResponse(content={"error": f"head_settings failed: {str(e)}"}, status_code=500)
 
 @router.post("/head")
-async def head_command(request: Request):
+async def head_command(request: Request, robot = Depends(get_robot)):
     """
     Execute commands for controlling the robot's head.
 
     This endpoint processes a JSON request containing the method to execute, along with any required parameters
     for controlling the robot's head, such as 'look' or 'gaze'.
+    Example:
+        {
+            "method": "look",
+            "yaw": 180,
+            "pitch": 180,
+            "speed": 40
+        }
+        {
+            "method": "gaze",
+            "x": 1.0,
+            "y": 1.0
+        }
 
     Args:
         request (Request): The incoming HTTP request containing JSON data with the command method and parameters.
@@ -280,7 +260,7 @@ async def head_command(request: Request):
         return JSONResponse(content={"error": f"head_command failed: {str(e)}"}, status_code=500)
 
 @router.post("/arm/gripper")
-async def gripper_command(request: Request):
+async def gripper_command(request: Request, robot = Depends(get_robot)):
     """
     Execute commands for controlling the gripper of the robot's arm.
 
@@ -321,12 +301,15 @@ async def gripper_command(request: Request):
         return JSONResponse(content={"error": f"gripper_command failed: {str(e)}"}, status_code=500)
 
 @router.post("/arm")
-async def arm_command(request: Request):
+async def arm_command(request: Request, robot = Depends(get_robot)):
     """
     Execute commands for controlling the arm of the robot.
 
     This endpoint processes a JSON request containing the method to execute, along with any required parameters
-    for controlling the arm, such as 'move-joint' or 'move-joints'.
+    for controlling the arm, such as 'move-joint' or 'move-joints'. Parameters may include 'joint', 'angle', and 'speed'.
+    Example: 
+    {"method": "move-joint", "joint": 1, "angle": 45.0, "speed": 1.0}, 
+    {"method": "move-joints", "angles": [45.0, 0.0, 0.0, 0.0, 0.0, 0.0], "speed": 1.0}
 
     Args:
         request (Request): The incoming HTTP request containing JSON data with the command method and parameters.
