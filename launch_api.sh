@@ -64,8 +64,8 @@ else
 fi
 
 # === Launch FastAPI with uvicorn ===
-# Adjust `app.run:app` to your actual ASGI app import path
-UVICORN_MODULE="app.run:app"  # Change if your ASGI app is elsewhere
+# Adjust `app.main:app` to your actual ASGI app import path
+UVICORN_MODULE="app.main:app"  # Change if your ASGI app is elsewhere
 
 # Production: remove --reload
 uvicorn $UVICORN_MODULE \

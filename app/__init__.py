@@ -19,7 +19,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from hackerbot import Hackerbot
-from app.routes import register_routes
+from app.routers import register_routes
 
 robot = None  # Will be initialized in lifespan
 

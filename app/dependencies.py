@@ -8,19 +8,10 @@
 # Created:    April 2025
 # Updated:    2025.04.01
 #
-# This script contains the configuration for the Flask application.
+# This script contains the dependencies for the FAST API application.
 #
 # Special thanks to the following for their code contributions to this codebase:
 # Allen Chien - https://github.com/AllenChienXXX
 ################################################################################
 
 
-from pydantic import BaseSettings
-
-class Settings(BaseSettings):
-    SECRET_KEY: str = "supersecretkey"
-
-    class Config:
-        env_file = ".env"
-
-settings = Settings()
