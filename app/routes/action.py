@@ -52,6 +52,8 @@ def base_post():
         result = robot.base.kill()
     elif method == 'trigger-bump':
         result = robot.base.trigger_bump(data.get('left'), data.get('right'))
+    elif method == 'speak':
+        result = robot.base.speak(data.get('model_src'), data.get('text'), data.get("speaker_id"))
     else:
         return jsonify({'error': 'Invalid method'}), 400
 
