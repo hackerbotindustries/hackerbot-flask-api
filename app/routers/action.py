@@ -213,8 +213,8 @@ async def head_command(request: Request, robot = Depends(get_robot)):
     Example:
         {
             "method": "look",
-            "yaw": 180,
-            "pitch": 180,
+            "pan": 180,
+            "tilt": 180,
             "speed": 40
         }
         {
@@ -239,10 +239,10 @@ async def head_command(request: Request, robot = Depends(get_robot)):
         method = get_required_param(data, 'method')
 
         if method == 'look':
-            yaw = get_required_param(data, 'yaw')
-            pitch = get_required_param(data, 'pitch')
+            pan = get_required_param(data, 'pan')
+            tilt = get_required_param(data, 'tilt')
             speed = get_required_param(data, 'speed')
-            result = robot.head.look(yaw, pitch, speed)
+            result = robot.head.look(pan, tilt, speed)
 
         elif method == 'gaze':
             x = get_required_param(data, 'x')

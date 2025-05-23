@@ -110,7 +110,7 @@ def test_head_put_idle_mode(client, app_with_mock_robot):
 def test_head_post_look(client, app_with_mock_robot):
     _, robot = app_with_mock_robot
     robot.head.look.return_value = "looking"
-    response = client.post("/head", json={"method": "look", "yaw": 1.0, "pitch": 0.5, "speed": 1.0})
+    response = client.post("/head", json={"method": "look", "pan": 1.0, "tilt": 0.5, "speed": 1.0})
     assert response.status_code == 200
     assert response.json() == {"response": "looking"}
 
