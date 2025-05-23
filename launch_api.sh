@@ -20,10 +20,10 @@
 set -o pipefail
 
 BASE_DIR="$(pwd)"
-cd $HOME/hackerbot/hackerbot-api/
+cd $HOME/hackerbot/hackerbot-fast-api/
 
 # === Log setup ===
-timestamp_fastapi="hackerbot_api_$(date '+%Y%m%d%H%M')"
+timestamp_fastapi="hackerbot_fast_api_$(date '+%Y%m%d%H%M')"
 logdir="$HOME/hackerbot/logs"
 
 if [ ! -d "$logdir" ]; then

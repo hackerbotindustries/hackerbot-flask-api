@@ -21,6 +21,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import List, Dict, Optional
 from app.dependencies import get_robot
+from typing import Literal, Optional
 
 router = APIRouter()
 
@@ -34,49 +35,21 @@ class MarkerData(BaseModel):
     markers: List[dict]
 
 # --- Routes ---
+class GotoRequest(BaseModel):
+    method: Literal["goto"]
+    x: float
+    y: float
+    angle: Optional[float] = None
+    speed: Optional[float] = None
 
 @router.post("/base/maps")
-async def base_goto(request: Request, robot = Depends(get_robot)):
-    """
-    Navigate the robot base to a specified position on the map.
-
-    This endpoint processes a JSON request containing the method 'goto' along with target coordinates
-    and optional angle and speed parameters to command the robot base to move to the specified location.
-    Example:
-        {
-            "method": "goto",
-            "x": 1.0,
-            "y": 1.0,
-            "angle": 45.0,
-            "speed": 1.0
-        }
-
-    Args:
-        request (Request): The incoming HTTP request containing JSON data with the navigation method and parameters.
-
-    Returns:
-        dict: A dictionary with a single key "response" containing the result of the navigation command if successful.
-        JSONResponse: An error response with the corresponding HTTP status code and error message if the operation fails.
-
-    Raises:
-        HTTPException: 500 if the robot is not initialized in app state.
-        HTTPException: 400 if 'method' is not 'goto' or if required parameters are missing.
-    """
+async def base_goto(cmd: GotoRequest, robot = Depends(get_robot)):
     try:
-        data = await request.json()
-        if data.get('method') == 'goto':
-            x = get_required_param(data, 'x')
-            y = get_required_param(data, 'y')
-            angle = data.get('angle')  # Optional
-            speed = data.get('speed')  # Optional
-
-            result = robot.base.maps.goto(x, y, angle, speed)
-            return {"response": result} if result else JSONResponse(
-                content={"error": robot.get_error()}, status_code=500)
+        result = robot.base.maps.goto(cmd.x, cmd.y, cmd.angle, cmd.speed)
+        if result:
+            return {"response": result}
         else:
-            raise HTTPException(status_code=422, detail="Invalid method")
-    except HTTPException:
-        raise
+            return JSONResponse(content={"error": robot.get_error()}, status_code=500)
     except Exception as e:
         return JSONResponse(
             content={"error": f"base_goto failed: {str(e)}"},
@@ -84,15 +57,6 @@ async def base_goto(request: Request, robot = Depends(get_robot)):
 
 @router.get("/base/maps")
 def get_map_list(request: Request, robot = Depends(get_robot)):
-    """
-    Get a list of available maps.
-
-    Returns:
-        JSONResponse: A dictionary with a single key "map_list" containing a list of map IDs and names.
-    Raises:
-        HTTPException: 404 if no map list is found.
-        HTTPException: 500 if the robot is not initialized in app state or if an unknown error occurs.
-    """
     try:
         map_list = robot.base.maps.list()
         if map_list is None:
@@ -105,14 +69,6 @@ def get_map_list(request: Request, robot = Depends(get_robot)):
 
 @router.get("/base/maps/position")
 async def base_position(request: Request, robot = Depends(get_robot)):  
-    """
-    Get the current position of the robot base.
-
-    Returns:
-        JSONResponse: A dictionary with a single key "response" containing the position data.
-    Raises:
-        HTTPException: 500 if the robot is not initialized in app state or if there is an error retrieving the position.
-    """
     try:
         result = robot.base.maps.position()
         return {"response": result} if result else JSONResponse(content={"error": robot.get_error()}, status_code=500)
@@ -123,21 +79,6 @@ async def base_position(request: Request, robot = Depends(get_robot)):
 
 @router.get("/base/maps/{selected_map_id}")
 def get_compressed_map_data(request: Request, selected_map_id: int, robot = Depends(get_robot)):
-    """
-    Retrieve compressed map data for a specific map ID.
-
-    Args:
-        request (Request): The incoming HTTP request.
-        selected_map_id (int): The ID of the map to retrieve data for.
-
-    Returns:
-        dict: A dictionary containing the map ID and its associated compressed map data.
-
-    Raises:
-        HTTPException: 500 if the robot is not initialized in app state.
-        HTTPException: 404 if no map data is found for the given ID.
-        JSONResponse: 500 if an unknown error occurs while fetching map data.
-    """
     try:
         if selected_map_id not in map_data_db:
             map_data = robot.base.maps.fetch(selected_map_id)
