@@ -52,6 +52,35 @@ GripperCommand = Union[
 
 @router.post("/arm")
 async def arm_command(cmd: ArmCommand, robot = Depends(get_robot)):
+    """
+    Handles POST requests to /arm.
+
+    This endpoint is used to send commands to the arm.
+
+    The request body should contain a JSON object with a "method" key and
+    optionally other keys depending on the method. The following methods are
+    supported:
+
+    - "move-joint": Move the specified joint to the specified angle.
+      The request body should contain the following keys:
+
+      - "joint": The joint to move.
+      - "angle": The angle to move to in degrees.
+      - "speed": The speed at which to move the joint.
+    - "move-joints": Move the arm to the specified angles.
+      The request body should contain the following keys:
+
+      - "angles": A list of angles to move to in degrees.
+      - "speed": The speed at which to move the arm.
+
+    If the request body is invalid or the method is not recognized, a 422 error
+    is returned.
+
+    If the request is successful, a JSON response is returned with a "response"
+    key containing the result of the command. If there is an error, a JSON
+    response is returned with an "error" key containing the error message and
+    a 500 status code is returned.
+    """
     try:
         if isinstance(cmd, MoveJointCommand):
             result = robot.arm.move_joint(cmd.joint, cmd.angle, cmd.speed)
@@ -68,6 +97,27 @@ async def arm_command(cmd: ArmCommand, robot = Depends(get_robot)):
 
 @router.post("/arm/gripper")
 async def gripper_command(cmd: GripperCommand, robot = Depends(get_robot)):
+    """
+    Handles POST requests to /arm/gripper.
+
+    This endpoint is used to send commands to the gripper.
+
+    The request body should contain a JSON object with a "method" key and
+    optionally other keys depending on the method. The following methods are
+    supported:
+
+    - "calibrate": Calibrate the gripper.
+    - "open": Open the gripper.
+    - "close": Close the gripper.
+
+    If the request body is invalid or the method is not recognized, a 422 error
+    is returned.
+
+    If the request is successful, a JSON response is returned with a "response"
+    key containing the result of the command. If there is an error, a JSON
+    response is returned with an "error" key containing the error message and
+    a 500 status code is returned.
+    """
     try:
         if isinstance(cmd, GripperCalibrateCommand):
             result = robot.arm.gripper.calibrate()
