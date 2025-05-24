@@ -35,6 +35,30 @@ router = APIRouter()
 
 @router.post("/core")
 async def core_post(cmd: CoreCommand, robot = Depends(get_robot)):
+    """
+    Handles POST requests to /core.
+
+    This endpoint is used to send commands to the core of the robot.
+
+    The request body should contain a JSON object with a "method" key and
+    optionally other keys depending on the method. The following methods are
+    supported:
+
+    - "ping": A no-op request that returns "pong" if the robot is online.
+    - "settings": A request to change the settings of the robot. The following
+      settings can be changed:
+
+      - "json_responses": Whether the robot should return JSON responses.
+      - "tofs_enabled": Whether the TOFs should be enabled.
+
+    If the request body is invalid or the method is not recognized, a 422 error
+    is returned.
+
+    If the request is successful, a JSON response is returned with a "response"
+    key containing the result of the command. If there is an error, a JSON
+    response is returned with an "error" key containing the error message and
+    a 500 status code is returned.
+    """
     try:
         if isinstance(cmd, PingRequest):
             result = robot.core.ping()
@@ -58,6 +82,16 @@ async def core_post(cmd: CoreCommand, robot = Depends(get_robot)):
 
 @router.get("/core/version")
 async def core_version(request: Request, robot = Depends(get_robot)):
+    """
+    Get the current version of the robot's core system.
+
+    This endpoint returns a JSON response with a "response" key containing
+    the version information of the robot's core system. If the version
+    information is not available, a 500 status code is returned with an
+    error message.
+
+    Raises a 500 error if there is a problem retrieving the version.
+    """
     try:
         result = robot.core.version()
         return {"response": result} if result else JSONResponse(content={"error": robot.get_error()}, status_code=500)

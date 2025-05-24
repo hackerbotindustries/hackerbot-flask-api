@@ -24,6 +24,28 @@ router = APIRouter()
 
 @router.post("/base")
 async def base_post(cmd: BaseCommand, robot = Depends(get_robot)):
+    """
+    Handles POST requests to /base endpoint.
+
+    This function processes various base commands by determining the type of request
+    and invoking the appropriate method on the robot's base. The supported commands are:
+
+    - "initialize": Initializes the robot's base.
+    - "mode": Sets the mode of the robot's base using the provided mode_id.
+    - "start": Starts the robot's base operations.
+    - "quickmap": Performs a quick mapping operation with the robot's base.
+    - "dock": Docks the robot to its station.
+    - "kill": Stops all operations of the robot's base.
+    - "trigger-bump": Triggers a bump using the specified left and right parameters.
+    - "speak": Makes the robot speak the provided text using the specified model and speaker_id.
+      Ex: {"model_src": "en_GB-semaine-medium", "text": "Hello, world!", "speaker_id": null}
+    - "drive": Drives the robot with the specified linear and angular velocities.
+      Ex: {"linear_velocity": 0.0, "angle_velocity": 65}
+
+    Returns a JSON response containing the result of the command under the "response" key if successful.
+    If an error occurs, returns a JSON response with an "error" key containing the error message.
+    Raises a 422 HTTPException if the command method is invalid.
+    """
     try:
         if isinstance(cmd, InitializeRequest):
             result = robot.base.initialize()
