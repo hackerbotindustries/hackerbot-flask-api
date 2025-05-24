@@ -6,27 +6,20 @@
 #
 # Created By: Allen Chien
 # Created:    April 2025
-# Updated:    2025.04.01
+# Updated:    2025.05.19
 #
-# This script contains the status API endpoints.
+# This script contains helper functions for handling HTTP requests.
 #
 # Special thanks to the following for their code contributions to this codebase:
 # Allen Chien - https://github.com/AllenChienXXX
 ################################################################################
 
 
-from flask import Blueprint, jsonify, current_app
+from fastapi import HTTPException
+from typing import Any, Dict
 
-bp = Blueprint('status', __name__)
-
-@bp.route('/api/status', methods=['GET'])
-def get_status():
-    robot = current_app.config['ROBOT']
-    status = robot.get_current_action()
-    return jsonify({"status": status})
-
-@bp.route('/api/error', methods=['GET'])
-def get_error():
-    robot = current_app.config['ROBOT']
-    error = robot.get_error()
-    return jsonify({"error": error})
+def get_required_param(data: Dict[str, Any], key: str) -> Any:
+    value = data.get(key)
+    if value is None:
+        raise HTTPException(status_code=400, detail=f"Missing '{key}' parameter")
+    return value

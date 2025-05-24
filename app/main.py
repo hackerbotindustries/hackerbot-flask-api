@@ -8,18 +8,17 @@
 # Created:    April 2025
 # Updated:    2025.04.01
 #
-# This script registers the routes for the Flask application.
+# This script runs the Flask application.
 #
 # Special thanks to the following for their code contributions to this codebase:
 # Allen Chien - https://github.com/AllenChienXXX
 ################################################################################
 
 
-from app.routes import status
-from app.routes import mapping
-from app.routes import action
+import uvicorn
+from app import create_app
 
-def register_routes(app):
-    app.register_blueprint(status.bp)
-    app.register_blueprint(mapping.bp)
-    app.register_blueprint(action.bp)
+app = create_app()
+
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=5000, reload=True)

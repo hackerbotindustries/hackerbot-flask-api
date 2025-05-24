@@ -1,11 +1,11 @@
 ![HackerBot](images/transparent_hb_horizontal_industries_.png)
-# Hackerbot FLASK API
-This repository contains the restful api built with flask. It's also the backend for the command center. For more details, view the [documentation](https://hackerbot-industries.gitbook.io/documentation-hackerbot-industries/command-center-and-flask-apis#flask-apis)
+# Hackerbot API
+This repository contains the FASTAPI for Hackerbot. It's also the backend for the command center.
 
 ### 1. Install Dependencies
-Navigate to the Flask application directory:
+Navigate to the directory:
 ```bash
-cd ~hackerbot/hackerbot-flask-api/
+cd ~hackerbot/hackerbot-api/
 ```
 Install required Python packages:
 ```bash
@@ -13,9 +13,9 @@ pip install -r requirements.txt
 ```
 ### 2. Run the Backend Server
 ```bash
-launch-flask-api
+./launch_api.sh
 ```
 ### 3. Stop the server
 ```bash
-stop-flask-api
+./stop_api.sh 
 ```

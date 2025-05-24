@@ -8,16 +8,17 @@
 # Created:    April 2025
 # Updated:    2025.04.01
 #
-# This script runs the Flask application.
+# This script contains the dependencies for the FAST API application.
 #
 # Special thanks to the following for their code contributions to this codebase:
 # Allen Chien - https://github.com/AllenChienXXX
 ################################################################################
 
 
-from app import create_app
+from fastapi import Request, HTTPException
 
-app = create_app()
-
-if __name__ == '__main__':
-    app.run(debug=True, port=5000, host='0.0.0.0')
+def get_robot(request: Request):
+    robot = getattr(request.app.state, "robot", None)
+    if robot is None:
+        raise HTTPException(status_code=500, detail="Robot is not initialized in app state")
+    return robot

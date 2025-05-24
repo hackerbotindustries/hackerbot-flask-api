@@ -15,117 +15,143 @@
 ################################################################################
 
 
-import unittest
-from unittest.mock import MagicMock
-from flask import Flask, jsonify
 import sys
 import os
-import pytest
-from app import create_app
-
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from app.routes.mapping import bp, map_data_db
+import pytest
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+from unittest.mock import MagicMock
+from app.routers.mapping import router, map_data_db, markers_db  # adjust path as needed
 
-class TestMappingDataAPI(unittest.TestCase):
+@pytest.fixture
+def app_with_mock_robot():
+    app = FastAPI()
+    mock_robot = MagicMock()
+    app.include_router(router)
+    app.state.robot = mock_robot
+    return app, mock_robot
 
-    @classmethod
-    def setUpClass(cls):
-        cls.app = Flask(__name__)
-        cls.app.register_blueprint(bp)
-        cls.client = cls.app.test_client()
-        cls.app.testing = True
+@pytest.fixture
+def client(app_with_mock_robot):
+    app, _ = app_with_mock_robot
+    return TestClient(app)
 
-    def setUp(self):
-        self.mock_robot = MagicMock()
-        self.app = self.__class__.app
-        self.app.config['ROBOT'] = self.mock_robot
+# ---------------------- GET /base/maps ----------------------
 
-        # self.mock_robot.base.maps.fetch.side_effect = lambda map_id: {'data': f'map{map_id}'}
+def test_base_goto_success(client, app_with_mock_robot):
+    _, robot = app_with_mock_robot
+    robot.base.maps.goto.return_value = "navigating"
+    payload = {"method": "goto", "x": 1.0, "y": 2.0, "angle": 0.0, "speed": 0.5}
+    response = client.post("/base/maps", json=payload)
+    assert response.status_code == 200
+    assert response.json() == {"response": "navigating"}
 
-    def test_get_map_list(self):
-        self.mock_robot.base.maps.list.return_value = [1, 2, 3]
-        response = self.client.get('/api/v1/base/maps')
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {"map_list": [1, 2, 3]})
+def test_get_map_list_success(client, app_with_mock_robot):
+    _, robot = app_with_mock_robot
+    robot.base.maps.list.return_value = [{"id": 1, "name": "Map A"}]
 
-    def test_get_map_list_missing(self):
-        self.mock_robot.base.maps.list.return_value = None
-        self.app.config['MAP_LIST'] = None
-        response = self.client.get('/api/v1/base/maps')
-        self.assertEqual(response.status_code, 404)
-        self.assertEqual(response.json, {"error": "No map list found"})
+    response = client.get("/base/maps")
+    assert response.status_code == 200
+    assert response.json() == {"map_list": [{"id": 1, "name": "Map A"}]}
 
-    def test_get_compressed_map_valid(self):
-        self.mock_robot.base.maps.fetch.return_value = 'map1'
-        response = self.client.get('/api/v1/base/maps/1')
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {
-            "map_id": 1,
-            "map_data": 'map1'
-        })
+def test_get_map_list_none(client, app_with_mock_robot):
+    _, robot = app_with_mock_robot
+    robot.base.maps.list.return_value = None
 
-    def test_get_compressed_map_invalid_id(self):
-        self.mock_robot.base.maps.fetch.return_value = None
-        response = self.client.get('/api/v1/base/maps/999')
-        self.assertEqual(response.status_code, 404)
-        self.assertIn("Map data not found", response.json["error"])
+    response = client.get("/base/maps")
+    assert response.status_code == 404
+    assert response.json()["detail"] == "No map list found"
 
-    def test_get_compressed_map_robot_missing(self):
-        del self.app.config['ROBOT']
-        self.app.config['MAP_DATA'] = {}
-        response = self.client.get('/api/v1/base/maps/1')
-        self.assertEqual(response.status_code, 500)
-        self.assertIn("Robot not configured", response.json["error"])
+def test_get_map_list_robot_missing():
+    app = FastAPI()
+    app.include_router(router)
+    client = TestClient(app)
 
-    def test_save_markers_success(self):
-        test_data = {
-            "map_id": 1,
-            "markers": [{"id": 1, "position": [0, 0]}]
-        }
-        response = self.client.post('/api/save-markers', json=test_data)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {
-            "map_id": 1,
-            "markers": [{"id": 1, "position": [0, 0]}]
-        })
+    response = client.get("/base/maps")
+    assert response.status_code == 500
+    assert response.json()["detail"] == "Robot is not initialized in app state"
 
-    def test_save_markers_missing_map_id(self):
-        test_data = {
-            "markers": [{"id": 1, "position": [0, 0]}]
-        }
-        response = self.client.post('/api/save-markers', json=test_data)
-        self.assertEqual(response.status_code, 200)
-        self.assertIn('error', response.json)
+# ---------------------- GET /base/maps/position ----------------------
 
-    def test_save_markers_invalid_json(self):
-        response = self.client.post('/api/save-markers', data='invalid json')
-        self.assertEqual(response.status_code, 200)
-        self.assertIn('error', response.json)
+def test_base_position_success(client, app_with_mock_robot):
+    _, robot = app_with_mock_robot
+    robot.base.maps.position.return_value = {"x": 1, "y": 2, "theta": 90}
 
-    def test_load_markers_success(self):
-        # First save some markers
-        test_data = {
-            "map_id": 1,
-            "markers": [{"id": 1, "position": [0, 0]}]
-        }
-        self.client.post('/api/save-markers', json=test_data)
-        
-        # Then load them
-        response = self.client.get('/api/load-markers/1')
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {
-            "map_id": 1,
-            "markers": [{"id": 1, "position": [0, 0]}]
-        })
+    response = client.get("/base/maps/position")
+    assert response.status_code == 200
+    assert response.json() == {"response": {"x": 1, "y": 2, "theta": 90}}
 
-    def test_load_markers_empty(self):
-        response = self.client.get('/api/load-markers/999')
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {
-            "map_id": 999,
-            "markers": []
-        })
+def test_base_position_failure(client, app_with_mock_robot):
+    _, robot = app_with_mock_robot
+    robot.base.maps.position.return_value = None
+    robot.get_error.return_value = "Positioning system offline"
 
-if __name__ == '__main__':
-    unittest.main()
+    response = client.get("/base/maps/position")
+    assert response.status_code == 500
+    assert response.json()["error"] == "Positioning system offline"
+
+# ---------------------- GET /base/maps/{map_id} ----------------------
+
+def test_get_compressed_map_data_from_robot(client, app_with_mock_robot):
+    map_data_db.clear()
+    _, robot = app_with_mock_robot
+    robot.base.maps.fetch.return_value = {"compressed": "data"}
+
+    response = client.get("/base/maps/42")
+    assert response.status_code == 200
+    assert response.json() == {"map_id": 42, "map_data": {"compressed": "data"}}
+
+def test_get_compressed_map_data_cached(client, app_with_mock_robot):
+    map_data_db[99] = {"cached": "yes"}
+    response = client.get("/base/maps/99")
+    assert response.status_code == 200
+    assert response.json() == {"map_id": 99, "map_data": {"cached": "yes"}}
+
+def test_get_compressed_map_data_not_found(client, app_with_mock_robot):
+    map_data_db.clear()
+    _, robot = app_with_mock_robot
+    robot.base.maps.fetch.return_value = None
+
+    response = client.get("/base/maps/77")
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Map data not found for ID 77"
+
+# ---------------------- POST /save-markers ----------------------
+
+def test_save_markers_success(client):
+    payload = {
+        "map_id": 12,
+        "markers": [{"x": 1, "y": 2}, {"x": 3, "y": 4}]
+    }
+    response = client.post("/save-markers", json=payload)
+    assert response.status_code == 200
+    assert response.json() == payload
+    assert markers_db[12] == payload["markers"]
+
+def test_save_markers_missing_map_id(client):
+    # map_id is required due to pydantic validation, so simulate invalid input
+    payload = {
+        "markers": [{"x": 1, "y": 2}]
+    }
+    response = client.post("/save-markers", json=payload)
+    assert response.status_code == 422  # validation error
+
+# ---------------------- GET /load-markers/{map_id} ----------------------
+
+def test_load_markers_found(client):
+    markers_db[55] = [{"label": "A"}, {"label": "B"}]
+    response = client.get("/load-markers/55")
+    assert response.status_code == 200
+    assert response.json() == {"map_id": 55, "markers": [{"label": "A"}, {"label": "B"}]}
+
+def test_load_markers_not_found(client):
+    markers_db.pop(100, None)
+    response = client.get("/load-markers/100")
+    assert response.status_code == 200
+    assert response.json() == {
+        "map_id": 100,
+        "markers": [],
+        "warning": "No markers found for this map_id"
+    }

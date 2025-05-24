@@ -15,79 +15,87 @@
 ################################################################################
 
 
-import unittest
-from unittest.mock import MagicMock
-from flask import Flask, jsonify, current_app
 import sys
 import os
-
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from app.routes.status import bp  # Import your Blueprint containing the routes
+import pytest
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+from unittest.mock import MagicMock
+from app.routers.status import router 
 
-class TestStatusAPI(unittest.TestCase):
+@pytest.fixture
+def app_with_mock_robot():
+    app = FastAPI()
+    mock_robot = MagicMock()
+    app.include_router(router)
+    app.state.robot = mock_robot
+    return app, mock_robot
 
-    @classmethod
-    def setUpClass(cls):
-        # Create a Flask app for testing
-        cls.app = Flask(__name__)
-        cls.app.register_blueprint(bp)  # Register the blueprint
-        cls.client = cls.app.test_client()
-        cls.app.testing = True
+@pytest.fixture
+def client(app_with_mock_robot):
+    app, _ = app_with_mock_robot
+    return TestClient(app)
 
-    def setUp(self):
-        # Mock the robot object inside the app config for each test
-        self.mock_robot = MagicMock()
-        self.app.config['ROBOT'] = self.mock_robot
+# ------------------- /status -------------------
 
-    def test_get_status_success(self):
-        # Mock the return value of robot.get_current_action()
-        self.mock_robot.get_current_action.return_value = "Idle"
+def test_status_with_current_action(client, app_with_mock_robot):
+    app, mock_robot = app_with_mock_robot
+    mock_robot.get_current_action.return_value = "moving"
+    response = client.get("/status")
+    assert response.status_code == 200
+    assert response.json() == {"status": "moving"}
 
-        response = self.client.get('/api/status')
+def test_status_with_no_current_action(client, app_with_mock_robot):
+    app, mock_robot = app_with_mock_robot
+    mock_robot.get_current_action.return_value = None
+    response = client.get("/status")
+    assert response.status_code == 204
+    assert response.json() == {"status": None, "warning": "No current action available"}
 
-        # Check that the response status code is 200
-        self.assertEqual(response.status_code, 200)
+def test_status_with_missing_robot(client):
+    app = FastAPI()
+    app.include_router(router)
+    test_client = TestClient(app)
+    response = test_client.get("/status")
+    assert response.status_code == 500
+    assert response.json()["detail"] == "Robot is not initialized in app state"
 
-        # Check that the response JSON contains the expected status
-        self.assertEqual(response.json, {"status": "Idle"})
+def test_status_with_exception(client, app_with_mock_robot):
+    app, mock_robot = app_with_mock_robot
+    mock_robot.get_current_action.side_effect = Exception("Unexpected error")
+    response = client.get("/status")
+    assert response.status_code == 500
+    assert "Failed to retrieve status" in response.json()["error"]
 
-    def test_get_status_failure(self):
-        # Mock the return value of robot.get_current_action() as None or an error
-        self.mock_robot.get_current_action.return_value = None
+# ------------------- /error -------------------
 
-        response = self.client.get('/api/status')
+def test_error_with_existing_error(client, app_with_mock_robot):
+    app, mock_robot = app_with_mock_robot
+    mock_robot.get_error.return_value = "Motor overload"
+    response = client.get("/error")
+    assert response.status_code == 200
+    assert response.json() == {"error": "Motor overload"}
 
-        # Check that the response status code is 200 even in case of None
-        # Since we still get a response, even if it's an empty one
-        self.assertEqual(response.status_code, 200)
+def test_error_with_no_error(client, app_with_mock_robot):
+    app, mock_robot = app_with_mock_robot
+    mock_robot.get_error.return_value = None
+    response = client.get("/error")
+    assert response.status_code == 200
+    assert response.json() == {"message": "None"}
 
-        # Check that the response JSON contains a None or empty status
-        self.assertEqual(response.json, {"status": None})
+def test_error_with_missing_robot(client):
+    app = FastAPI()
+    app.include_router(router)
+    test_client = TestClient(app)
+    response = test_client.get("/error")
+    assert response.status_code == 500
+    assert response.json()["detail"] == "Robot is not initialized in app state"
 
-    def test_get_error_success(self):
-        # Mock the return value of robot.get_error()
-        self.mock_robot.get_error.return_value = "No error"
-
-        response = self.client.get('/api/error')
-
-        # Check that the response status code is 200
-        self.assertEqual(response.status_code, 200)
-
-        # Check that the response JSON contains the expected error message
-        self.assertEqual(response.json, {"error": "No error"})
-
-    def test_get_error_failure(self):
-        # Mock the return value of robot.get_error() as None or an error
-        self.mock_robot.get_error.return_value = None
-
-        response = self.client.get('/api/error')
-
-        # Check that the response status code is 200
-        self.assertEqual(response.status_code, 200)
-
-        # Check that the response JSON contains a None or empty error message
-        self.assertEqual(response.json, {"error": None})
-
-if __name__ == '__main__':
-    unittest.main()
+def test_error_with_exception(client, app_with_mock_robot):
+    app, mock_robot = app_with_mock_robot
+    mock_robot.get_error.side_effect = Exception("Internal fault")
+    response = client.get("/error")
+    assert response.status_code == 500
+    assert "Failed to retrieve error state" in response.json()["error"]
