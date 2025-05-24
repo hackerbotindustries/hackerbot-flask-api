@@ -15,7 +15,7 @@
 ################################################################################
 
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
 from app.dependencies import get_robot
 from app.models.base import BaseCommand, InitializeRequest, ModeRequest, StartRequest, QuickmapRequest, DockRequest, KillRequest, TriggerBumpRequest, SpeakRequest, DriveRequest
@@ -75,3 +75,13 @@ async def base_post(cmd: BaseCommand, robot = Depends(get_robot)):
         return JSONResponse(
             content={"error": f"base_post failed: {str(e)}"},
             status_code=500)
+
+@router.get("/base/status")
+async def base_status(request: Request, robot = Depends(get_robot)):
+    try:
+        result = robot.base.status()
+        return {"response": result} if result else JSONResponse(content={"error": robot.get_error()}, status_code=500)
+    except HTTPException:
+        raise  
+    except Exception as e:
+        return JSONResponse(content={"error": f"Failed to fetch status: {str(e)}"}, status_code=500)

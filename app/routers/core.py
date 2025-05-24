@@ -65,9 +65,10 @@ async def core_post(cmd: CoreCommand, robot = Depends(get_robot)):
         elif isinstance(cmd, SettingsRequest):
             if cmd.json_responses is not None:
                 result = robot.set_json_mode(cmd.json_responses)
-            elif cmd.tofs_enabled is not None:
+            if cmd.tofs_enabled is not None:
                 result = robot.set_TOFs(cmd.tofs_enabled)
-            else:
+
+            if not result:
                 raise HTTPException(status_code=422, detail="Missing settings fields")
         else:
             raise HTTPException(status_code=422, detail="Invalid method")
