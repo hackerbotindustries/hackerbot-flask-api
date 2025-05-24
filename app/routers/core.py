@@ -1,0 +1,67 @@
+################################################################################
+# Copyright (c) 2025 Hackerbot Industries LLC
+#
+# This source code is licensed under the MIT license found in the
+# LICENSE file in the root directory of this source tree.
+#
+# Created By: Allen Chien
+# Created:    April 2025
+# Updated:    2025.05.16
+#
+# This script contains the core Fast API endpoints.
+#
+# Special thanks to the following for their code contributions to this codebase:
+# Allen Chien - https://github.com/AllenChienXXX
+################################################################################
+
+
+from pydantic import BaseModel
+from typing import Optional, Union, Literal
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import JSONResponse
+from app.dependencies import get_robot
+
+class PingRequest(BaseModel):
+    method: Literal["ping"]
+
+class SettingsRequest(BaseModel):
+    method: Literal["settings"]
+    json_responses: Optional[bool] = None
+    tofs_enabled: Optional[bool] = None
+
+CoreCommand = Union[PingRequest, SettingsRequest]
+
+router = APIRouter()
+
+@router.post("/core")
+async def core_post(cmd: CoreCommand, robot = Depends(get_robot)):
+    try:
+        if isinstance(cmd, PingRequest):
+            result = robot.core.ping()
+        elif isinstance(cmd, SettingsRequest):
+            if cmd.json_responses is not None:
+                result = robot.set_json_mode(cmd.json_responses)
+            elif cmd.tofs_enabled is not None:
+                result = robot.set_TOFs(cmd.tofs_enabled)
+            else:
+                raise HTTPException(status_code=422, detail="Missing settings fields")
+        else:
+            raise HTTPException(status_code=422, detail="Invalid method")
+
+        return {"response": result} if result else JSONResponse(
+            content={"error": robot.get_error()}, status_code=500)
+
+    except Exception as e:
+        return JSONResponse(
+            content={"error": f"core_post failed: {str(e)}"},
+            status_code=500)
+
+@router.get("/core/version")
+async def core_version(request: Request, robot = Depends(get_robot)):
+    try:
+        result = robot.core.version()
+        return {"response": result} if result else JSONResponse(content={"error": robot.get_error()}, status_code=500)
+    except HTTPException:
+        raise
+    except Exception as e:
+        return JSONResponse(content={"error": f"core_version failed: {str(e)}"}, status_code=500)
