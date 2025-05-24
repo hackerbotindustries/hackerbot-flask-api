@@ -15,7 +15,7 @@
 ################################################################################
 
 
-from app.routers import status, mapping, core, base
+from app.routers import status, mapping, core, base, head, arm
 
 def register_routes(app):
     # v1 routes
@@ -23,9 +23,11 @@ def register_routes(app):
     app.include_router(mapping.router, prefix="/api/v1", tags=["mapping"])
     app.include_router(core.router, prefix="/api/v1", tags=["core"])
     app.include_router(base.router, prefix="/api/v1", tags=["base"])
+    app.include_router(head.router, prefix="/api/v1", tags=["head"])
+    app.include_router(arm.router, prefix="/api/v1", tags=["arm"])
     
     # v2 routes
-    app.include_router(status.router, prefix="/api/v2", tags=["status"])
-    app.include_router(mapping.router, prefix="/api/v2", tags=["mapping"])
-    app.include_router(core.router, prefix="/api/v2", tags=["core"])
-    app.include_router(base.router, prefix="/api/v2", tags=["base"])
+    # app.include_router(status.router, prefix="/api/v2", tags=["status"])
+    # app.include_router(mapping.router, prefix="/api/v2", tags=["mapping"])
+    # app.include_router(core.router, prefix="/api/v2", tags=["core"])
+    # app.include_router(base.router, prefix="/api/v2", tags=["base"])

@@ -21,6 +21,8 @@ from pydantic import BaseModel
 from typing import Literal, Optional, Union
 from app.dependencies import get_robot
 
+router = APIRouter()
+
 # --- MODELS: ARM ---
 class MoveJointCommand(BaseModel):
     method: Literal["move-joint"]
